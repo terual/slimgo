@@ -339,7 +339,6 @@ func slimprotoHello() (err os.Error) {
 	}
 
 	// send a packet
-	//_, err := conn.Write([]byte("HEAD / HTTP/1.0\r\n\r\n"))
 	msg := HELO{Length: 36+59, DeviceID: 12, Revision: 255}
 	copy(msg.Operation[:], "HELO")
 	copy(msg.MAC[:], "\x12\x34\x56\x78\x90\xab")

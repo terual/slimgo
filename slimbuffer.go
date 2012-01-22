@@ -165,7 +165,6 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 	checkError(err)
 
 	buf, err := slimbuffer.Reader.NewReaderSize(r.Body, 1048576)
-	slimbuffer.Init = true
 
 	if r.StatusCode == 200 { // 200 OK
 
@@ -181,6 +180,7 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 		_ = slimprotoSend(slimproto.Conn, 0, "STMs") // Track Started 
 
 		n, inErr := buf.Read(inBuf)
+		slimbuffer.Init = true
 
 		for inErr == nil {
 			//v, ok := <-slimaudioChannel // peek in channel
