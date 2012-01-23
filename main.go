@@ -27,6 +27,8 @@ import (
 	//"bufio"
     "os/signal"
 	"syscall"
+	"strings"
+	"strconv"
 )
 
 var startTime = time.Nanoseconds() / 1e6
@@ -35,6 +37,7 @@ var lmsAddr = flag.String("S", "", "IP-address of the Logitech Media Server")
 var lmsPortr = flag.Int("P", 3483, "Port of the Logitech Media Server")
 var outputDevice = flag.String("o", "hw:0,0", "ALSA output device, use aplay -L to see the options")
 var debug = flag.Bool("d", true, "view debug messages")
+var macAddr = flag.String("m", "00:00:00:00:00:02", "Sets the mac address for this instance. Use the colon-separated notation. The default is 00:00:00:00:00:02. Squeezebox Server uses this value to distinguish multiple instances, allowing per-player settings.")
 
 // slimaudio struct
 type audio struct {
@@ -72,6 +75,8 @@ var slimaudioChannel = make(chan int)  // Allocate a channel.
 func main() {
 	// First parse the command line options
 	flag.Parse()
+
+	log.Printf("MAC: %s, macdec: %v", *macAddr, macConvert(*macAddr))
 
 	var addr net.IP
 	var port int
@@ -125,6 +130,18 @@ func signalWatcher() {
 	}
 }
 
+func macConvert(macAddr string) (decMac [6]uint8) {
+	f := func (i int) bool { 
+		if string(i)==":" { return true }
+		return false 
+	}
+	mac := strings.FieldsFunc(macAddr, f)
+	for i, v := range mac {
+		decMac64, _ := strconv.Btoui64(v, 16)
+		decMac[i] = uint8(decMac64)
+	}
+	return
+}
 
 func slimproto_main(addr net.IP, port int) {
 
@@ -136,7 +153,7 @@ func slimproto_main(addr net.IP, port int) {
 		slimprotoConnect(addr, port)
 		defer slimprotoClose()
 
-		err := slimprotoHello()
+		err := slimprotoHello(macConvert(*macAddr))
 		if err != nil {
 			if *debug { log.Println("Handshake failed, trying again") }
 			time.Sleep(1e9)

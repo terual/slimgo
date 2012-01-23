@@ -319,7 +319,7 @@ func slimprotoClose() {
 	if *debug { log.Println("Connection to slimproto closed") }
 }
 
-func slimprotoHello() (err os.Error) {
+func slimprotoHello(macAddr [6]uint8) (err os.Error) {
 
 	type HELO struct {
 		Operation [4]byte
@@ -335,9 +335,9 @@ func slimprotoHello() (err os.Error) {
 	}
 
 	// send a packet
-	msg := HELO{Length: 36+59, DeviceID: 12, Revision: 255}
+	msg := HELO{Length: 36+59, DeviceID: 12, Revision: 255, MAC: macAddr}
 	copy(msg.Operation[:], "HELO")
-	copy(msg.MAC[:], "\x12\x34\x56\x78\x90\xab")
+	//copy(msg.MAC[:], "\x12\x34\x56\x78\x90\xab")
 	copy(msg.Capabilities[:], "model=squeezeplay,modelName=SlimGo,pcm,MaxSampleRate=192000")
 	err = binary.Write(slimproto.Conn, binary.BigEndian, &msg)
 
