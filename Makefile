@@ -3,7 +3,7 @@ include $(GOROOT)/src/Make.inc
 all: slimgo
 
 slimgo: alsa
-	$(GC) -o _go_.$O -I_obj slimproto.go slimaudio.go slimbuffer.go main.go
+	$(GC) -o _go_.$O -I_obj slimproto.go slimaudio.go slimbuffer.go bufio.go main.go
 	$(LD) -o $@ -L_obj _go_.$O 
 	@echo "Done. Executable is: $@"
 
