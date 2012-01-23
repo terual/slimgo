@@ -221,6 +221,62 @@ func (handle *Handle) ApplyHwParams() os.Error {
 	return nil
 }
 
+func GetDevices() {
+
+	var hints **unsafe.Pointer
+
+	/* Enumerate sound devices */
+	err := C.snd_device_name_hint(-1, C.CString("pcm"), hints)
+	if err != 0 {
+		fmt.Println(err)
+	   return
+	}
+	fmt.Println(hints)
+
+	/*var n *unsafe.Pointer
+	n = *hints
+
+	for *n != nil {
+
+		var name *C.char
+		name = C.snd_device_name_get_hint(*n, C.CString("NAME"))
+
+		if name != nil {
+		    //Copy name to another buffer and then free it
+		    fmt.Println(name)
+		}
+		*n = unsafe.Pointer(int(*n)+1)
+	}
+
+	// Free hint buffer too
+	C.snd_device_name_free_hint(*hints)*/
+
+}
+
+func SetAlsaMasterVolume(volume int) {
+    var min, max _Ctype_long
+    var handle *C.snd_mixer_t
+    var sid *C.snd_mixer_selem_id_t
+    card := "default"
+    selem_name := "Master"
+
+    C.snd_mixer_open(&handle, 0)
+    C.snd_mixer_attach(handle, C.CString(card))
+    C.snd_mixer_selem_register(handle, nil, nil)
+    C.snd_mixer_load(handle)
+
+    //C.snd_mixer_selem_id_alloca(&sid)
+    C.snd_mixer_selem_id_set_index(sid, 0)
+    C.snd_mixer_selem_id_set_name(sid, C.CString(selem_name))
+    var elem *C.snd_mixer_elem_t 
+	elem = C.snd_mixer_find_selem(handle, sid)
+
+    C.snd_mixer_selem_get_playback_volume_range(elem, &min, &max)
+    C.snd_mixer_selem_set_playback_volume_all(elem, _Ctype_long(volume * int(max) / 128))
+
+    C.snd_mixer_close(handle)
+}
+
 func (handle *Handle) Drain() {
 	if handle.SampleRate > 0 {
 		C.snd_pcm_drain(handle.cHandle)

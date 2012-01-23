@@ -109,7 +109,7 @@ func slimprotoConnect(addr net.IP, port int) {
 	var err os.Error
 	slimproto.Conn, err = net.DialTCP("tcp", nil, sbsAddr)
 	checkError(err)
-	slimproto.Conn.SetTimeout(5e9)
+	slimproto.Conn.SetTimeout(10e9)
 
 	if *debug {
 		log.Println("Connected to slimproto")
@@ -246,9 +246,11 @@ func slimprotoRecv() (err os.Error) {
 				// read into audg struct
 				var audioGainResponse audg
 				err = binary.Read(slimproto.Conn, binary.BigEndian, &audioGainResponse)
-				log.Printf("audioGainResponse, Old_left: %v, Old_right: %v, New_left: %v, New_right: %v",
-					audioGainResponse.Old_left, audioGainResponse.Old_right,
-					audioGainResponse.New_left, audioGainResponse.New_right)
+				if *debug {
+					log.Printf("audioGainResponse, Old_left: %v, Old_right: %v, New_left: %v, New_right: %v",
+						audioGainResponse.Old_left, audioGainResponse.Old_right,
+						audioGainResponse.New_left, audioGainResponse.New_right)
+				}
 			} else {
 				body := make([]byte, headerResponse.Lenght-4)
 				_, err = slimproto.Conn.Read(body[0:])

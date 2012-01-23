@@ -37,7 +37,7 @@ var startTime = time.Nanoseconds() / 1e6
 var useDisco = flag.Bool("F", true, "use discovery to find SB server")
 var lmsAddr = flag.String("S", "", "IP-address of the Logitech Media Server")
 var lmsPortr = flag.Int("P", 3483, "Port of the Logitech Media Server")
-var outputDevice = flag.String("o", "hw:0,0", "ALSA output device, use aplay -L to see the options")
+var outputDevice = flag.String("o", "default", "ALSA output device, use aplay -L to see the options")
 var debug = flag.Bool("d", true, "view debug messages")
 var macAddr = flag.String("m", "00:00:00:00:00:02", "Sets the mac address for this instance. Use the colon-separated notation. The default is 00:00:00:00:00:02. Squeezebox Server uses this value to distinguish multiple instances, allowing per-player settings.")
 
@@ -97,6 +97,9 @@ func main() {
 	slimbuffer.Init = false
 
 	// Open a ALSA handle
+	if *outputDevice == "default" {
+		log.Println("Using output device 'default', consider using 'hw:0,0' to avoid conversion in ALSA")
+	}
 	slimaudio.Handle = slimaudioOpen(*outputDevice)
 	defer slimaudioClose(slimaudio.Handle)
 
