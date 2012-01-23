@@ -24,7 +24,7 @@ import (
 	"time"
 	"os"
 	"./alsa-go/_obj/alsa"
-    "os/signal"
+	"os/signal"
 	"syscall"
 	"strings"
 	"strconv"
@@ -43,14 +43,16 @@ var macAddr = flag.String("m", "00:00:00:00:00:02", "Sets the mac address for th
 
 // slimaudio struct
 type audio struct {
-	Handle *alsa.Handle
-	State string
+	Handle        *alsa.Handle
+	State         string
 	Pcmsamplesize uint8
 	Pcmsamplerate uint8
-	Pcmchannels uint8
-	Pcmendian uint8
+	Pcmchannels   uint8
+	Pcmendian     uint8
 	FramesWritten int
+	NewTrack      bool
 }
+
 var slimaudio audio
 
 // slimproto struct
@@ -59,24 +61,28 @@ type proto struct {
 	Addr net.IP
 	Port int
 }
+
 var slimproto proto
 
 //slimbuffer struct
 type buffer struct {
 	Reader *Reader
-	Init bool
+	Init   bool
 }
+
 var slimbuffer buffer
 
 // channel which blocks until slimproto is ready
-var slimprotoChannel = make(chan int)  // Allocate a channel.
-var slimaudioChannel = make(chan int)  // Allocate a channel.
+var slimprotoChannel = make(chan int) // Allocate a channel.
+var slimaudioChannel = make(chan int) // Allocate a channel.
 
 func main() {
 	// First parse the command line options
 	flag.Parse()
 
-	if *debug { log.Printf("MAC: %s, macdec: %v", *macAddr, macConvert(*macAddr)) }
+	if *debug {
+		log.Printf("MAC: %s, macdec: %v", *macAddr, macConvert(*macAddr))
+	}
 
 	// Use discovery for SB server
 	if *useDisco == true {
@@ -98,9 +104,9 @@ func main() {
 	go signalWatcher()
 
 	// Connect to SB server
-	go slimproto_main(addr, port)
+	go slimproto_main(slimproto.Addr, slimproto.Port)
 
-	<-slimprotoChannel   // Wait for slimproto to finish; discard sent value.
+	<-slimprotoChannel // Wait for slimproto to finish; discard sent value.
 }
 
 // jiffies returns a 1kHz counter since start of program
@@ -112,30 +118,32 @@ func jiffies() uint32 {
 func signalWatcher() {
 	for {
 		select {
-		    case sig := <- signal.Incoming:
-		        switch s := sig.(type) {
-		        case os.UnixSignal:
-		                switch s {
-		                case syscall.SIGCHLD:
-		                	continue
-		                case syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT: 
-							_ = slimprotoBye()
-							os.Exit(0)
-						default:
-							continue
-		                }
-		        default:
+		case sig := <-signal.Incoming:
+			switch s := sig.(type) {
+			case os.UnixSignal:
+				switch s {
+				case syscall.SIGCHLD:
 					continue
-		        }
+				case syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT:
+					_ = slimprotoBye()
+					os.Exit(0)
+				default:
+					continue
+				}
+			default:
+				continue
+			}
 		}
 	}
 }
 
 // Convert a colon seperated mac-address to a uint8 array
 func macConvert(macAddr string) (decMac [6]uint8) {
-	f := func (i int) bool { 
-		if string(i)==":" { return true }
-		return false 
+	f := func(i int) bool {
+		if string(i) == ":" {
+			return true
+		}
+		return false
 	}
 	mac := strings.FieldsFunc(macAddr, f)
 	for i, v := range mac {
@@ -151,18 +159,24 @@ func slimproto_main(addr net.IP, port int) {
 	for {
 		var reconnect = false
 
-		if *debug { log.Printf("Using %v:%v for slimproto\n", addr, port) }
+		if *debug {
+			log.Printf("Using %v:%v for slimproto\n", addr, port)
+		}
 
 		slimprotoConnect(addr, port)
 		defer slimprotoClose()
 
 		err := slimprotoHello(macConvert(*macAddr))
 		if err != nil {
-			if *debug { log.Println("Handshake failed, trying again") }
+			if *debug {
+				log.Println("Handshake failed, trying again")
+			}
 			time.Sleep(1e9)
 			continue
 		} else {
-			if *debug { log.Println("HELO send succesfully") }
+			if *debug {
+				log.Println("HELO send succesfully")
+			}
 		}
 
 		for {
@@ -187,6 +201,6 @@ func slimproto_main(addr net.IP, port int) {
 		slimaudio.Handle.Drop()
 		_ = slimbuffer.Reader.Flush()
 	}
-	slimprotoChannel <- 1  // Send a signal; value does not matter. 
+	slimprotoChannel <- 1 // Send a signal; value does not matter. 
 
 }

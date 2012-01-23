@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"io"
 	"os"
+	//"fmt"
+	//"encoding/binary"
 )
 
 // BufSizeError is the error representing an invalid buffer size.
@@ -117,6 +119,15 @@ func (b *Reader) Read(p []byte) (n int, err os.Error) {
 	b.r += n
 	b.lastByte = int(b.buf[b.r-1])
 	b.lastRuneSize = -1
+
+	/*for i:=0; i<(n/4); i+=4 {
+		sampleLeft := int16(binary.LittleEndian.Uint16(p[i:i+2]))/4
+		sampleRight :=  int16(binary.LittleEndian.Uint16(p[i+2:i+4]))/4
+		//fmt.Println(p[i:i+4], sampleLeft, sampleRight)
+
+		binary.LittleEndian.PutUint16(p[i:i+2], uint16(sampleLeft))
+		binary.LittleEndian.PutUint16(p[i+2:i+4], uint16(sampleRight))
+	}*/
 	return n, nil
 }
 
@@ -129,4 +140,3 @@ func (b *Reader) Flush() (err os.Error) {
 }
 
 func (b *Reader) Size() int { return len(b.buf) }
-

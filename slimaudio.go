@@ -32,16 +32,20 @@ func slimaudioOpen(device string) (handle *alsa.Handle) {
 	if err != nil {
 		log.Fatalf("Open failed. %s", err)
 	} else {
-		if *debug { log.Printf("ALSA device %s opened", device) }
+		if *debug {
+			log.Printf("ALSA device %s opened", device)
+		}
 	}
 
 	return
 }
 
 // Close ALSA
-func slimaudioClose(handle *alsa.Handle){
+func slimaudioClose(handle *alsa.Handle) {
 	handle.Close()
-	if *debug { log.Println("ALSA closed") }
+	if *debug {
+		log.Println("ALSA closed")
+	}
 	return
 }
 
@@ -60,29 +64,49 @@ func slimaudioSetParams(handle *alsa.Handle, sampleFormat alsa.SampleFormat, sam
 // Writes data to ALSA
 func slimaudioWrite(handle *alsa.Handle, nIn int, data []byte, format alsa.SampleFormat, rate int, channels int) (n int, alsaErr os.Error, writeErr os.Error) {
 
-	if handle.SampleFormat != format || handle.SampleRate != rate || handle.Channels != channels {
+	if slimaudio.NewTrack == true {
+		if handle.SampleFormat != format || handle.SampleRate != rate || handle.Channels != channels {
 
-		alsaErr = slimaudioSetParams(handle, format, rate, channels)
-		if alsaErr != nil {
-			handle.SampleFormat = 0
-			handle.SampleRate = 0
-			handle.Channels = 0
-			return 0, alsaErr, nil
+			alsaErr = slimaudioSetParams(handle, format, rate, channels) // This also drains the alsa buffer
+			_ = slimprotoSend(slimproto.Conn, 0, "STMs")                 // Track Started
+			slimaudio.NewTrack = false
+
+			if alsaErr != nil {
+				return 0, alsaErr, nil
+			} else {
+				if *debug {
+					log.Println("ALSA set to", format, rate, channels)
+				}
+			}
+
 		} else {
-			if *debug { log.Println("ALSA set to", format, rate, channels) }
+			handle.Drain()
+			_ = slimprotoSend(slimproto.Conn, 0, "STMs") // Track Started
+			slimaudio.NewTrack = false
 		}
 	}
+
 	if nIn > 0 {
 		n, writeErr = handle.Write(data[0:nIn])
 
 		if writeErr != nil {
 			log.Printf("Write failed. %s\n", writeErr)
-		} else {
+
+			alsaErr = slimaudioSetParams(handle, format, rate, channels)
+			n, writeErr = handle.Write(data[0:nIn])
+			if writeErr != nil {
+				log.Printf("Write failed AGAIN. %s\n", writeErr)
+			}
+		}
+
+		if n > 0 {
 			slimaudio.FramesWritten += (n / (handle.SampleSize() * handle.Channels))
 		}
+
 	} else {
 		return 0, nil, nil
 	}
+
 	return n, nil, writeErr
 }
 

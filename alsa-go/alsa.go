@@ -112,8 +112,8 @@ type Handle struct {
 	// Sample rate in Hz. Usual 44100.
 	SampleRate int
 	// Channels in the stream. 2 for stereo.
-	Channels int
-	Periods int
+	Channels   int
+	Periods    int
 	Buffersize C.snd_pcm_uframes_t
 }
 
@@ -183,28 +183,28 @@ func (handle *Handle) ApplyHwParams() os.Error {
 	}
 
 	/*
-    // Set number of periods. Periods used to be called fragments.
-    err = C.snd_pcm_hw_params_set_periods(handle.cHandle, cHwParams, _Ctype_uint(handle.Periods), 0)
-	if err < 0 {
-		return os.NewError(fmt.Sprintf("Cannot set number of periods. %s",
-			strError(err)))
-    }
+	    // Set number of periods. Periods used to be called fragments.
+	    err = C.snd_pcm_hw_params_set_periods(handle.cHandle, cHwParams, _Ctype_uint(handle.Periods), 0)
+		if err < 0 {
+			return os.NewError(fmt.Sprintf("Cannot set number of periods. %s",
+				strError(err)))
+	    }
 
-    // Set buffer size (in frames). The resulting latency is given by
-    // latency = periodsize * periods / (rate * bytes_per_frame)
-    //err = C.snd_pcm_hw_params_set_buffer_size(handle.cHandle, cHwParams, (periodsize * periods)>>2)
-	//if err < 0 {
-	//	return os.NewError(fmt.Sprintf("Cannot set buffersize. %s",
-	//		strError(err)))
-    //}
+	    // Set buffer size (in frames). The resulting latency is given by
+	    // latency = periodsize * periods / (rate * bytes_per_frame)
+	    //err = C.snd_pcm_hw_params_set_buffer_size(handle.cHandle, cHwParams, (periodsize * periods)>>2)
+		//if err < 0 {
+		//	return os.NewError(fmt.Sprintf("Cannot set buffersize. %s",
+		//		strError(err)))
+	    //}
 
-	//var cBufferSize *C.snd_pcm_uframes_t
-	//cBufferSize = _Ctype_snd_pcm_uframes_t(_Ctype_uint(handle.Periods) * _Ctype_uint(handle.Periodsize))>>2
-    err = C.snd_pcm_hw_params_set_buffer_size_near(handle.cHandle, cHwParams, &handle.Buffersize)
-	if err < 0 {
-		return os.NewError(fmt.Sprintf("Cannot set buffersize. %s",
-			strError(err)))
-    }
+		//var cBufferSize *C.snd_pcm_uframes_t
+		//cBufferSize = _Ctype_snd_pcm_uframes_t(_Ctype_uint(handle.Periods) * _Ctype_uint(handle.Periodsize))>>2
+	    err = C.snd_pcm_hw_params_set_buffer_size_near(handle.cHandle, cHwParams, &handle.Buffersize)
+		if err < 0 {
+			return os.NewError(fmt.Sprintf("Cannot set buffersize. %s",
+				strError(err)))
+	    }
 	*/
 
 	// Drain current data and make sure we aren't underrun.
@@ -230,6 +230,9 @@ func (handle *Handle) Drain() {
 func (handle *Handle) Drop() {
 	if handle.SampleRate > 0 {
 		C.snd_pcm_drop(handle.cHandle)
+		handle.SampleRate = 0
+		handle.Channels = 0
+		handle.SampleFormat = SampleFormatUnknown
 	}
 }
 

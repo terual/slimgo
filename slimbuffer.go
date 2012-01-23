@@ -29,14 +29,14 @@ import (
 func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.SampleFormat, rate int, channels int) (err os.Error) {
 
 	hdrSlice := strings.Fields(string(httpHeader[:]))
-	req, _ := http.NewRequest(hdrSlice[0], "http://" + addr + ":" + port + hdrSlice[1], nil)
+	req, _ := http.NewRequest(hdrSlice[0], "http://"+addr+":"+port+hdrSlice[1], nil)
 
 	//var req *http.Request
 	//u, err := url.Parse(hdrSlice[1])
 	/*req := &http.Request{Method: hdrSlice[0], 
-		RawURL: "http://127.0.0.1:9000" + hdrSlice[1], 
-		Proto: hdrSlice[2], 
-		Body: nil}*/
+	RawURL: "http://127.0.0.1:9000" + hdrSlice[1], 
+	Proto: hdrSlice[2], 
+	Body: nil}*/
 
 	r, err := http.DefaultClient.Do(req)
 	checkError(err)
@@ -50,23 +50,23 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 
 		// This tracks the streamtime
 		slimaudio.FramesWritten = 0
+		slimaudio.NewTrack = true
 
 		// TODO inBufLen
 		inBufLen := 2 * 3 * 4 * channels * 1024
 		inBuf := make([]byte, inBufLen)
 
 		_ = slimprotoSend(slimproto.Conn, 0, "STMl") //	Buffer threshold reached 
-		_ = slimprotoSend(slimproto.Conn, 0, "STMs") // Track Started 
 
 		n, inErr := buf.Read(inBuf)
 		slimbuffer.Init = true
 
 		for inErr == nil {
-			//v, ok := <-slimaudioChannel // peek in channel
-			//fmt.Printf("slimaudioChannel; v: %v, ok: %v", v, ok)
 
 			if slimaudio.State == "STOPPED" {
-				if *debug { log.Println("Stopping goroutine slimbufferOpen") }
+				if *debug {
+					log.Println("Stopping goroutine slimbufferOpen")
+				}
 				return
 			} else if slimaudio.State == "PAUSED" {
 				<-slimaudioChannel
@@ -98,7 +98,8 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 			// Close connection on EOF
 			r.Body.Close()
 			//err = slimprotoSend(slimproto.Conn, 0, "STMu")
-			// This triggers the switch in the server to the next track
+
+			// STMd triggers the switch in the server to the next track
 			err = slimprotoSend(slimproto.Conn, 0, "STMd")
 			slimaudio.State = "STOPPED"
 		}
@@ -109,4 +110,3 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 	return
 
 }
-
