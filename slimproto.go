@@ -19,7 +19,7 @@
 package main
 
 import (
-	"fmt"
+	//"fmt"
 	"net"
 	"os"
 	"log"
@@ -78,7 +78,6 @@ func slimprotoDisco() (addr net.IP, port int) {
 	for i := 0; i < 5; i++ {
 		data := make([]byte, 1) 
 		_, remoteAddr, err = conn.ReadFromUDP(data)
-		//fmt.Println(data)
 		if string(data[:]) == "E" {
 			break
 		} else if i == 4 {
@@ -90,7 +89,7 @@ func slimprotoDisco() (addr net.IP, port int) {
     err = binary.Read(conn, binary.BigEndian, &response)
 	checkError(err)
 
-    fmt.Printf("Response: %s %s:%s\n", remoteAddr, response.Type, response.Lenght)
+    if *debug { log.Printf("Response: %s %s:%s\n", remoteAddr, response.Type, response.Lenght) }
 
 	// Parse response
 	//addr = net.IPv4(response.IPaddr[0],response.IPaddr[1],response.IPaddr[2],response.IPaddr[3])
@@ -110,7 +109,7 @@ func slimprotoConnect(addr net.IP, port int) {
 	checkError(err)
 	slimproto.Conn.SetTimeout(5e9)
 
-	log.Println("Connected to slimproto")
+	if *debug { log.Println("Connected to slimproto") }
 
 	return
 
@@ -167,11 +166,10 @@ func slimprotoRecv() (err os.Error) {
 				var streamResponse strm
 				err = binary.Read(slimproto.Conn, binary.BigEndian, &streamResponse)
 
-				//fmt.Println(cmdHdr, headerResponse.Lenght, streamResponse.Replay_gain, streamResponse)
-				fmt.Printf("[Recv strm] Command: %s, Autostart: %s, Formatbyte: %s, Pcmsamplesize: %s, Pcmsamplerate: %s, Pcmchannels: %s, Pcmendian: %s\n", 
+				if *debug { log.Printf("[Recv strm] Command: %s, Autostart: %s, Formatbyte: %s, Pcmsamplesize: %s, Pcmsamplerate: %s, Pcmchannels: %s, Pcmendian: %s\n", 
 					string(streamResponse.Command),	string(streamResponse.Autostart), string(streamResponse.Formatbyte),
 					string(streamResponse.Pcmsamplesize),	string(streamResponse.Pcmsamplerate), 
-					string(streamResponse.Pcmchannels), string(streamResponse.Pcmendian) )
+					string(streamResponse.Pcmchannels), string(streamResponse.Pcmendian) ) }
 
 				switch string(streamResponse.Command) {
 				case "t":
@@ -203,17 +201,16 @@ func slimprotoRecv() (err os.Error) {
 				case "a":
 					//skip-ahead
 				default:
-					log.Println("Did not recognise strm message with cmd: %s", string(streamResponse.Command))
+					if *debug { log.Println("Did not recognise strm message with cmd: %s", string(streamResponse.Command)) }
 				}
 
-				log.Printf("slimaudio.State: %s\n", slimaudio.State)
+				if *debug { log.Printf("slimaudio.State: %s\n", slimaudio.State) }
 
 
 				// check if a http header is sent
 				if headerResponse.Lenght > 28 {
 					httpHeader := make([]byte, headerResponse.Lenght-28)
 					_, _ = slimproto.Conn.Read(httpHeader[0:])
-					//fmt.Println(string(httpHeader))
 
 					if string(streamResponse.Formatbyte) == "p" {
 						format, rate, channels := slimaudioProto2Param(streamResponse.Pcmsamplesize, 
@@ -226,7 +223,7 @@ func slimprotoRecv() (err os.Error) {
 						slimaudio.State = "PLAYING"
 						//slimaudioChannel <- 2
 					} else {
-						log.Printf("Format not supported, Formatbyte: %s", string(streamResponse.Formatbyte))
+						if *debug { log.Printf("Format not supported, Formatbyte: %s", string(streamResponse.Formatbyte)) }
 						_ = slimprotoSend(slimproto.Conn, 0, "STMn")
 					}
 				}
@@ -234,7 +231,6 @@ func slimprotoRecv() (err os.Error) {
 			default:
 				body := make([]byte, headerResponse.Lenght-4) 
 				_, err = slimproto.Conn.Read(body[0:])
-				//fmt.Println(cmdHdr, headerResponse.Lenght, "ignored: ", body)
 		}
 	}
 
@@ -311,7 +307,7 @@ func slimprotoSend(conn *net.TCPConn, timestamp uint32, eventcode string) (err o
 	copy(msg.EventCode[:], eventcode)
 
 	err = binary.Write(conn, binary.BigEndian, &msg)
-	fmt.Println("Send", eventcode, msg)
+	if *debug { log.Println("Send", eventcode, msg) }
 
 	return
 
@@ -320,7 +316,7 @@ func slimprotoSend(conn *net.TCPConn, timestamp uint32, eventcode string) (err o
 func slimprotoClose() {
 	err := slimproto.Conn.Close()
 	checkError(err)
-	log.Println("Connection to slimproto closed")
+	if *debug { log.Println("Connection to slimproto closed") }
 }
 
 func slimprotoHello() (err os.Error) {
@@ -348,9 +344,30 @@ func slimprotoHello() (err os.Error) {
 	return
 }
 
+func slimprotoBye() (err os.Error) {
+
+	type BYE struct {
+		Operation [4]byte
+		Length uint32
+		Upgrade uint8
+	}
+
+	// send a packet
+	msg := BYE{Length: 1, Upgrade: 0}
+	copy(msg.Operation[:], "BYE!")
+	err = binary.Write(slimproto.Conn, binary.BigEndian, &msg)
+	if *debug { log.Printf("Sent BYE! msg: %v", msg) }
+
+	return
+}
+
 func checkError(err os.Error) {
 	if err != nil {
+		log.Println("reader %v\n", err)
+	}
 
+	/*
+	if err != nil {
 		// print error string e.g.
 		// "read tcp example.com:80: resource temporarily unavailable"
 		fmt.Printf("reader %v\n", err)
@@ -398,5 +415,6 @@ func checkError(err os.Error) {
 		 }
 		}
 	}
+	*/
 }
 

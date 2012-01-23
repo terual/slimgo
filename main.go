@@ -25,12 +25,16 @@ import (
 	"os"
 	"./alsa-go/_obj/alsa"
 	//"bufio"
+    "os/signal"
+	"syscall"
 )
 
 var startTime = time.Nanoseconds() / 1e6
-var useDisco = flag.Bool("d", true, "use discovery to find SB server")
+var useDisco = flag.Bool("F", true, "use discovery to find SB server")
 var lmsAddr = flag.String("S", "", "IP-address of the Logitech Media Server")
-var outputDevice = flag.String("D", "hw:0,0", "ALSA output device, use aplay -L to see the options")
+var lmsPortr = flag.Int("P", 3483, "Port of the Logitech Media Server")
+var outputDevice = flag.String("o", "hw:0,0", "ALSA output device, use aplay -L to see the options")
+var debug = flag.Bool("d", true, "view debug messages")
 
 // slimaudio struct
 type audio struct {
@@ -68,9 +72,6 @@ var slimaudioChannel = make(chan int)  // Allocate a channel.
 func main() {
 	// First parse the command line options
 	flag.Parse()
-    //for i := 0; i < flag.NArg(); i++ {
-	//	log.Println(flag.Arg(i))
-    //}
 
 	var addr net.IP
 	var port int
@@ -90,6 +91,8 @@ func main() {
 	slimaudio.Handle = slimaudioOpen(*outputDevice)
 	defer slimaudioClose(slimaudio.Handle)
 
+	go signalWatcher()
+
 	// Connect to SB server
 	go slimproto_main(addr, port)
 
@@ -100,26 +103,50 @@ func jiffies() uint32 {
 	return uint32((time.Nanoseconds() / 1e6) - startTime)
 }
 
+func signalWatcher() {
+	for {
+		select {
+		    case sig := <- signal.Incoming:
+		        switch s := sig.(type) {
+		        case os.UnixSignal:
+		                switch s {
+		                case syscall.SIGCHLD:
+		                	continue
+		                case syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT: 
+							_ = slimprotoBye()
+							os.Exit(0)
+						default:
+							continue
+		                }
+		        default:
+					continue
+		        }
+		}
+	}
+}
+
+
 func slimproto_main(addr net.IP, port int) {
 
 	for {
 		var reconnect = false
 
-		log.Printf("Using %v:%v for slimproto\n", addr, port)
+		if *debug { log.Printf("Using %v:%v for slimproto\n", addr, port) }
 
 		slimprotoConnect(addr, port)
 		defer slimprotoClose()
 
 		err := slimprotoHello()
 		if err != nil {
-			log.Println("Handshake failed, trying again")
+			if *debug { log.Println("Handshake failed, trying again") }
 			time.Sleep(1e9)
 			continue
 		} else {
-			log.Println("HELO send succesfully")
+			if *debug { log.Println("HELO send succesfully") }
 		}
 
 		for {
+
 			err := slimprotoRecv()
 			if err != nil {
 				switch err {

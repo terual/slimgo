@@ -31,7 +31,7 @@ func slimaudioOpen(device string) (handle *alsa.Handle) {
 	if err != nil {
 		log.Fatalf("Open failed. %s", err)
 	} else {
-		log.Printf("ALSA device %s opened", device)
+		if *debug { log.Printf("ALSA device %s opened", device) }
 	}
 
 	return
@@ -39,7 +39,7 @@ func slimaudioOpen(device string) (handle *alsa.Handle) {
 
 func slimaudioClose(handle *alsa.Handle){
 	handle.Close()
-	log.Println("ALSA closed")
+	if *debug { log.Println("ALSA closed") }
 	return
 }
 
@@ -65,7 +65,7 @@ func slimaudioWrite(handle *alsa.Handle, nIn int, data []byte, format alsa.Sampl
 			handle.Channels = 0
 			return 0, alsaErr, nil
 		} else {
-			log.Println("ALSA set to", format, rate, channels)
+			if *debug { log.Println("ALSA set to", format, rate, channels) }
 		}
 	}
 	if nIn > 0 {
@@ -147,56 +147,3 @@ func slimaudioProto2Param(pcmsamplesize uint8, pcmsamplerate uint8, pcmchannels 
 
 	return
 }
-
-func slimaudioTest1(handle *alsa.Handle) {
-
-	slimaudioSetParams(handle, alsa.SampleFormatS24_3LE, 192000, 2)
-
-	log.Println("Framesize:", handle.FrameSize(), "bytes")
-	log.Printf("SampleSize: %v, SampleFormat: %v, SampleRate: %v, Channels: %v\n", handle.SampleSize(),
-		handle.SampleFormat, handle.SampleRate, handle.Channels)
-
-	inName := "file-19224.raw"
-	inFile, inErr := os.Open(inName)
-	if inErr == nil {
-		inBufLen := handle.FrameSize() * 1024
-		inBuf := make([]byte, inBufLen)
-		n, inErr := inFile.Read(inBuf)
-		for inErr == nil {
-			_, err := handle.Write(inBuf[0:n])
-			if err != nil {
-				log.Fatalf("Write failed. %s", err)
-			}
-			//fmt.Println(n, inBuf[0:n]);
-			n, inErr = inFile.Read(inBuf)
-		}
-	}
-	inErr = inFile.Close()
-}
-
-func slimaudioTest2(handle *alsa.Handle) {
-
-	slimaudioSetParams(handle, alsa.SampleFormatS16LE, 44100, 2)
-
-	log.Println("Framesize:", handle.FrameSize(), "bytes")
-	log.Printf("SampleSize: %v, SampleFormat: %v, SampleRate: %v, Channels: %v\n", handle.SampleSize(),
-		handle.SampleFormat, handle.SampleRate, handle.Channels)
-
-	inName := "file-4416.raw"
-	inFile, inErr := os.Open(inName)
-	if inErr == nil {
-		inBufLen := handle.FrameSize() * 1024
-		inBuf := make([]byte, inBufLen)
-		n, inErr := inFile.Read(inBuf)
-		for inErr == nil {
-			_, err := handle.Write(inBuf[0:n])
-			if err != nil {
-				log.Fatalf("Write failed. %s", err)
-			}
-			//fmt.Println(n, inBuf[0:n]);
-			n, inErr = inFile.Read(inBuf)
-		}
-	}
-	inErr = inFile.Close()
-}
-

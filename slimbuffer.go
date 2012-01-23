@@ -187,15 +187,22 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 			//fmt.Printf("slimaudioChannel; v: %v, ok: %v", v, ok)
 
 			if slimaudio.State == "STOPPED" {
-				log.Println("Stopping goroutine slimbufferOpen")
+				if *debug { log.Println("Stopping goroutine slimbufferOpen") }
 				return
 			} else if slimaudio.State == "PAUSED" {
 				<-slimaudioChannel
 			}
 
-			_, alsaErr, _ := slimaudioWrite(slimaudio.Handle, n, inBuf, format, rate, channels)
+			_, alsaErr, writeErr := slimaudioWrite(slimaudio.Handle, n, inBuf, format, rate, channels)
 			if alsaErr != nil {
 				log.Printf("Format not supported, if using hw as output device, try plughw: %v", alsaErr)
+				_ = slimprotoSend(slimproto.Conn, 0, "STMn")
+				slimaudio.State = "STOPPED"
+				return
+			}
+			if writeErr != nil {
+				slimaudio.Handle.Close()
+				slimaudio.Handle = slimaudioOpen(*outputDevice)
 				_ = slimprotoSend(slimproto.Conn, 0, "STMn")
 				slimaudio.State = "STOPPED"
 				return
