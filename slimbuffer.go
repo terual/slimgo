@@ -22,17 +22,16 @@ import (
 	"log"
 	"http"
 	"os"
-	//"time"
 	"strings"
 	"./alsa-go/_obj/alsa"
 )
 
 func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.SampleFormat, rate int, channels int) (err os.Error) {
 
-	//var req *http.Request
 	hdrSlice := strings.Fields(string(httpHeader[:]))
 	req, _ := http.NewRequest(hdrSlice[0], "http://" + addr + ":" + port + hdrSlice[1], nil)
 
+	//var req *http.Request
 	//u, err := url.Parse(hdrSlice[1])
 	/*req := &http.Request{Method: hdrSlice[0], 
 		RawURL: "http://127.0.0.1:9000" + hdrSlice[1], 
@@ -42,16 +41,17 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 	r, err := http.DefaultClient.Do(req)
 	checkError(err)
 
+	// Create buffer with size 1MB
 	buf, err := slimbuffer.Reader.NewReaderSize(r.Body, 1048576)
 
 	if r.StatusCode == 200 { // 200 OK
 
 		_ = slimprotoSend(slimproto.Conn, 0, "STMe") // Stream connection Established
 
-		//slimaudio.StartSeconds = time.Seconds()
-		//slimaudio.StartNanos = time.Nanoseconds()
+		// This tracks the streamtime
 		slimaudio.FramesWritten = 0
 
+		// TODO inBufLen
 		inBufLen := 2 * 3 * 4 * channels * 1024
 		inBuf := make([]byte, inBufLen)
 
@@ -72,26 +72,33 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 				<-slimaudioChannel
 			}
 
+			// Send data to ALSA interface
 			_, alsaErr, writeErr := slimaudioWrite(slimaudio.Handle, n, inBuf, format, rate, channels)
+
+			// An alsaErr is raised if for instance S24_3LE is not supported by hw:0,0
 			if alsaErr != nil {
 				log.Printf("Format not supported, if using hw as output device, try plughw: %v", alsaErr)
 				_ = slimprotoSend(slimproto.Conn, 0, "STMn")
 				slimaudio.State = "STOPPED"
 				return
 			}
+			//TODO:
+			// Reset ALSA
 			if writeErr != nil {
 				slimaudio.Handle.Close()
 				slimaudio.Handle = slimaudioOpen(*outputDevice)
-				_ = slimprotoSend(slimproto.Conn, 0, "STMn")
-				slimaudio.State = "STOPPED"
+				//_ = slimprotoSend(slimproto.Conn, 0, "STMn")
+				//slimaudio.State = "STOPPED"
 				return
 			}
 			n, inErr = buf.Read(inBuf)
 		}
 
 		if inErr == os.EOF {
+			// Close connection on EOF
 			r.Body.Close()
 			//err = slimprotoSend(slimproto.Conn, 0, "STMu")
+			// This triggers the switch in the server to the next track
 			err = slimprotoSend(slimproto.Conn, 0, "STMd")
 			slimaudio.State = "STOPPED"
 		}

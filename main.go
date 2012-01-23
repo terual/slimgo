@@ -24,14 +24,16 @@ import (
 	"time"
 	"os"
 	"./alsa-go/_obj/alsa"
-	//"bufio"
     "os/signal"
 	"syscall"
 	"strings"
 	"strconv"
 )
 
+// startTime is used by jiffies()
 var startTime = time.Nanoseconds() / 1e6
+
+// Setup flags for command line options
 var useDisco = flag.Bool("F", true, "use discovery to find SB server")
 var lmsAddr = flag.String("S", "", "IP-address of the Logitech Media Server")
 var lmsPortr = flag.Int("P", 3483, "Port of the Logitech Media Server")
@@ -47,10 +49,6 @@ type audio struct {
 	Pcmsamplerate uint8
 	Pcmchannels uint8
 	Pcmendian uint8
-	//StartSeconds int64
-	//StartNanos int64
-	//ElapsedSeconds uint32
-	//ElapsedMillis uint32
 	FramesWritten int
 }
 var slimaudio audio
@@ -59,6 +57,7 @@ var slimaudio audio
 type proto struct {
 	Conn *net.TCPConn
 	Addr net.IP
+	Port int
 }
 var slimproto proto
 
@@ -79,24 +78,23 @@ func main() {
 
 	if *debug { log.Printf("MAC: %s, macdec: %v", *macAddr, macConvert(*macAddr)) }
 
-	var addr net.IP
-	var port int
 	// Use discovery for SB server
 	if *useDisco == true {
-		addr, port = slimprotoDisco()
+		slimproto.Addr, slimproto.Port = slimprotoDisco()
 	} else if *lmsAddr != "" {
-		addr, port = net.ParseIP(*lmsAddr), 3483
+		slimproto.Addr, slimproto.Port = net.ParseIP(*lmsAddr), 3483
 	} else {
 		log.Fatalln("Please use server discovery or supply the IP-address of the server, see --help for more information.")
 	}
-	slimproto.Addr = addr
 
+	// TODO
 	slimbuffer.Init = false
 
 	// Open a ALSA handle
 	slimaudio.Handle = slimaudioOpen(*outputDevice)
 	defer slimaudioClose(slimaudio.Handle)
 
+	// This catches a SIGTERM et al. to be able to send a BYE! message
 	go signalWatcher()
 
 	// Connect to SB server
@@ -105,10 +103,12 @@ func main() {
 	<-slimprotoChannel   // Wait for slimproto to finish; discard sent value.
 }
 
+// jiffies returns a 1kHz counter since start of program
 func jiffies() uint32 {
 	return uint32((time.Nanoseconds() / 1e6) - startTime)
 }
 
+// signalWatcher waits for a signal and send a BYE! message on SIGTERM, SIGINT and SIGQUIT
 func signalWatcher() {
 	for {
 		select {
@@ -131,6 +131,7 @@ func signalWatcher() {
 	}
 }
 
+// Convert a colon seperated mac-address to a uint8 array
 func macConvert(macAddr string) (decMac [6]uint8) {
 	f := func (i int) bool { 
 		if string(i)==":" { return true }
@@ -144,6 +145,7 @@ func macConvert(macAddr string) (decMac [6]uint8) {
 	return
 }
 
+// Main loop
 func slimproto_main(addr net.IP, port int) {
 
 	for {

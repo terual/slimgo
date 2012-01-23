@@ -19,15 +19,14 @@
 package main
 
 import (
-	//"fmt"
 	"net"
 	"os"
 	"log"
     "encoding/binary"
-	//"time"
 	"strconv"
 )
 
+// Try a discovery on slimproto address and port
 func slimprotoDisco() (addr net.IP, port int) {
 
 	type discoSend struct {
@@ -98,6 +97,7 @@ func slimprotoDisco() (addr net.IP, port int) {
 	return
 }
 
+// Connect to slimproto
 func slimprotoConnect(addr net.IP, port int) {
 
 	sbsAddr := new(net.TCPAddr)
@@ -152,6 +152,7 @@ type audg struct {
 	New_right_deci uint16
 }
 
+// Receive from slimproto and act upon
 func slimprotoRecv() (err os.Error) {
 
     var headerResponse header
@@ -276,6 +277,7 @@ u32 	elapsed milliseconds - of the current stream
 u32 	server timestamp - reflected from an strm-t command
 u16 	error code - used with STMn */
 
+// Send STAT message
 func slimprotoSend(conn *net.TCPConn, timestamp uint32, eventcode string) (err os.Error) {
 
 	var elapsedSeconds int
@@ -330,12 +332,14 @@ func slimprotoSend(conn *net.TCPConn, timestamp uint32, eventcode string) (err o
 
 }
 
+// Close slimproto
 func slimprotoClose() {
 	err := slimproto.Conn.Close()
 	checkError(err)
 	if *debug { log.Println("Connection to slimproto closed") }
 }
 
+// Send a HELO message
 func slimprotoHello(macAddr [6]uint8) (err os.Error) {
 
 	type HELO struct {
@@ -361,6 +365,7 @@ func slimprotoHello(macAddr [6]uint8) (err os.Error) {
 	return
 }
 
+// Send a BYE! message
 func slimprotoBye() (err os.Error) {
 
 	type BYE struct {
@@ -378,6 +383,7 @@ func slimprotoBye() (err os.Error) {
 	return
 }
 
+// Check for errors in err
 func checkError(err os.Error) {
 	if err != nil {
 		log.Println("reader %v\n", err)

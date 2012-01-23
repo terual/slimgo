@@ -24,6 +24,7 @@ import (
 	"./alsa-go/_obj/alsa"
 )
 
+// Open ALSA
 func slimaudioOpen(device string) (handle *alsa.Handle) {
 	handle = alsa.New()
 
@@ -37,12 +38,14 @@ func slimaudioOpen(device string) (handle *alsa.Handle) {
 	return
 }
 
+// Close ALSA
 func slimaudioClose(handle *alsa.Handle){
 	handle.Close()
 	if *debug { log.Println("ALSA closed") }
 	return
 }
 
+// Apply the hw parameters
 func slimaudioSetParams(handle *alsa.Handle, sampleFormat alsa.SampleFormat, sampleRate int, channels int) (err os.Error) {
 	handle.SampleFormat = sampleFormat
 	handle.SampleRate = sampleRate
@@ -54,6 +57,7 @@ func slimaudioSetParams(handle *alsa.Handle, sampleFormat alsa.SampleFormat, sam
 	return
 }
 
+// Writes data to ALSA
 func slimaudioWrite(handle *alsa.Handle, nIn int, data []byte, format alsa.SampleFormat, rate int, channels int) (n int, alsaErr os.Error, writeErr os.Error) {
 
 	if handle.SampleFormat != format || handle.SampleRate != rate || handle.Channels != channels {
@@ -82,6 +86,7 @@ func slimaudioWrite(handle *alsa.Handle, nIn int, data []byte, format alsa.Sampl
 	return n, nil, writeErr
 }
 
+// Convert slimproto format to ALSA format parameters
 func slimaudioProto2Param(pcmsamplesize uint8, pcmsamplerate uint8, pcmchannels uint8, pcmendian uint8) (format alsa.SampleFormat, rate int, channels int) {
 
 	switch pcmchannels {
