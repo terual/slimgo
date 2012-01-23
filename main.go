@@ -47,10 +47,11 @@ type audio struct {
 	Pcmsamplerate uint8
 	Pcmchannels uint8
 	Pcmendian uint8
-	StartSeconds int64
-	StartNanos int64
-	ElapsedSeconds uint32
-	ElapsedMillis uint32
+	//StartSeconds int64
+	//StartNanos int64
+	//ElapsedSeconds uint32
+	//ElapsedMillis uint32
+	FramesWritten int
 }
 var slimaudio audio
 
@@ -76,7 +77,7 @@ func main() {
 	// First parse the command line options
 	flag.Parse()
 
-	log.Printf("MAC: %s, macdec: %v", *macAddr, macConvert(*macAddr))
+	if *debug { log.Printf("MAC: %s, macdec: %v", *macAddr, macConvert(*macAddr)) }
 
 	var addr net.IP
 	var port int
@@ -181,7 +182,7 @@ func slimproto_main(addr net.IP, port int) {
 				break
 			}
 		}
-		slimaudio.Handle.Flush()
+		slimaudio.Handle.Drop()
 		_ = slimbuffer.Reader.Flush()
 	}
 	slimprotoChannel <- 1  // Send a signal; value does not matter. 

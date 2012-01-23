@@ -221,10 +221,28 @@ func (handle *Handle) ApplyHwParams() os.Error {
 	return nil
 }
 
-func (handle *Handle) Flush() {
+func (handle *Handle) Drain() {
+	if handle.SampleRate > 0 {
+		C.snd_pcm_drain(handle.cHandle)
+	}
+}
+
+func (handle *Handle) Drop() {
 	if handle.SampleRate > 0 {
 		C.snd_pcm_drop(handle.cHandle)
 	}
+}
+
+// Delay returns the numbers of frames between the time that a frame that 
+// is written to the PCM stream and it to be actually audible.
+func (handle *Handle) Delay() (int, os.Error) {
+	var delay C.snd_pcm_sframes_t
+	err := C.snd_pcm_delay(handle.cHandle, &delay)
+	if err < 0 {
+		return 0, os.NewError(fmt.Sprintf("Retrieving delay failed. %s", strError(_Ctype_int(delay))))
+	}
+
+	return int(_Ctype_int(delay)), nil
 }
 
 // Wait waits till buffer will be free for some new portion of data or
@@ -294,7 +312,6 @@ func (handle *Handle) Unpause() os.Error {
 
 // Close closes stream and release the handler.
 func (handle *Handle) Close() {
-	fmt.Sprintf("Alsa closed")
 	C.snd_pcm_close(handle.cHandle)
 }
 

@@ -24,7 +24,7 @@ import (
 	"os"
 	"log"
     "encoding/binary"
-	"time"
+	//"time"
 	"strconv"
 )
 
@@ -190,13 +190,13 @@ func slimprotoRecv() (err os.Error) {
 						slimaudio.State = "PLAYING"
 					}
 				case "q":
-					slimaudio.Handle.Flush()
+					slimaudio.Handle.Drop()
 					_ = slimbuffer.Reader.Flush()
 					slimaudio.State = "STOPPED"
 					err = slimprotoSend(slimproto.Conn, 0, "STMf")
 				case "f":
 					//flush
-					slimaudio.Handle.Flush()
+					slimaudio.Handle.Drop()
 					_ = slimbuffer.Reader.Flush()
 				case "a":
 					//skip-ahead
@@ -278,11 +278,28 @@ u16 	error code - used with STMn */
 
 func slimprotoSend(conn *net.TCPConn, timestamp uint32, eventcode string) (err os.Error) {
 
-	var ElapsedSeconds uint32
-	var ElapsedMillis uint32
-	if slimaudio.StartSeconds != 0 {
+	var elapsedSeconds int
+	var elapsedMillis uint64
+	var elapsedFrames int
+
+	/*if slimaudio.StartSeconds != 0 {
 		ElapsedSeconds = uint32(time.Seconds() - slimaudio.StartSeconds)
 		ElapsedMillis = uint32((time.Nanoseconds() - slimaudio.StartNanos) / 1e6)
+	}*/
+
+	if slimaudio.FramesWritten > 0 {
+		delayFrames, err := slimaudio.Handle.Delay()
+		if err == nil {
+			elapsedFrames = slimaudio.FramesWritten - delayFrames
+			elapsedMillis = (uint64(elapsedFrames)*1000) / uint64(slimaudio.Handle.SampleRate)
+			elapsedSeconds = int(elapsedMillis/1000)
+			elapsedMillis = elapsedMillis%1000
+		}
+		if *debug { log.Printf("frames written: %v, delayFrames: %v, elapsedFrames: %v, ElapsedSeconds: %v, ElapsedMillis: %v", 
+			slimaudio.FramesWritten, delayFrames, elapsedFrames, elapsedSeconds, elapsedMillis) }
+	} else {
+		elapsedSeconds = 0
+		elapsedMillis = 0
 	}
 
 	var BufferFullness int
@@ -301,8 +318,8 @@ func slimprotoSend(conn *net.TCPConn, timestamp uint32, eventcode string) (err o
 		Jiffies: jiffies(),
 		OutputBufferSize: uint32(BufferSize),
 		OutputBufferFullness: uint32(BufferFullness),
-		ElapsedSeconds: ElapsedSeconds, 
-		ElapsedMillis: ElapsedMillis}
+		ElapsedSeconds: uint32(elapsedSeconds), 
+		ElapsedMillis: uint32(elapsedMillis)}
 	copy(msg.Operation[:], "STAT")
 	copy(msg.EventCode[:], eventcode)
 

@@ -4,6 +4,5 @@ Use gomake to build slimgo.
 
 TODO:
  - Get information about buffer fullness and size
- - Implement a mechanism to find out the streamtime
  - Remove alsa-go from this repository and use upstream
 

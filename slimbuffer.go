@@ -22,7 +22,7 @@ import (
 	"log"
 	"http"
 	"os"
-	"time"
+	//"time"
 	"strings"
 	"./alsa-go/_obj/alsa"
 )
@@ -48,8 +48,9 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 
 		_ = slimprotoSend(slimproto.Conn, 0, "STMe") // Stream connection Established
 
-		slimaudio.StartSeconds = time.Seconds()
-		slimaudio.StartNanos = time.Nanoseconds()
+		//slimaudio.StartSeconds = time.Seconds()
+		//slimaudio.StartNanos = time.Nanoseconds()
+		slimaudio.FramesWritten = 0
 
 		inBufLen := 2 * 3 * 4 * channels * 1024
 		inBuf := make([]byte, inBufLen)
