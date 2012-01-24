@@ -41,22 +41,21 @@ func (b *Reader) NewReaderSize(rd io.Reader, size int) (*Reader, os.Error) {
 		return nil, BufSizeError(size)
 	}
 	// Is it already a Reader?
-	b, ok := rd.(*Reader)
-	if ok && len(b.buf) >= size {
-		//return b, nil
-		//b = new(Reader)
-		//b.buf = make([]byte, size)
-		b.rd = rd
-		b.lastByte = -1
-		b.lastRuneSize = -1
-	} else {
+	//b, ok := rd.(*Reader)
+	//if ok && len(b.buf) >= size {
+	b.rd = rd
+	b.lastByte = -1
+	b.lastRuneSize = -1
+	return b, nil
+	/*} else {
+		fmt.Println("NEW READER", ok)
 		b = new(Reader)
 		b.buf = make([]byte, size)
 		b.rd = rd
 		b.lastByte = -1
 		b.lastRuneSize = -1
 	}
-	return b, nil
+	return b, nil*/
 }
 
 // fill reads a new chunk into the buffer.
@@ -96,7 +95,7 @@ func (b *Reader) Read(p []byte) (n int, err os.Error) {
 		if b.err != nil {
 			return 0, b.readErr()
 		}
-		if len(p) >= len(b.buf) {
+		/*if len(p) >= len(b.buf) {
 			// Large read, empty buffer.
 			// Read directly into p to avoid copy.
 			n, b.err = b.rd.Read(p)
@@ -105,7 +104,7 @@ func (b *Reader) Read(p []byte) (n int, err os.Error) {
 				b.lastRuneSize = -1
 			}
 			return n, b.readErr()
-		}
+		}*/
 		b.fill()
 		if b.w == b.r {
 			return 0, b.readErr()
@@ -128,6 +127,20 @@ func (b *Reader) Read(p []byte) (n int, err os.Error) {
 		binary.LittleEndian.PutUint16(p[i:i+2], uint16(sampleLeft))
 		binary.LittleEndian.PutUint16(p[i+2:i+4], uint16(sampleRight))
 	}*/
+	return n, nil
+}
+
+func (b *Reader) FillBuffer() (n int, err os.Error) {
+	if b.w == b.r {
+		if b.err != nil {
+			return 0, b.readErr()
+		}
+		b.fill()
+		if b.w == b.r {
+			return 0, b.readErr()
+		}
+	}
+	n = b.w - b.r
 	return n, nil
 }
 

@@ -80,7 +80,7 @@ func slimaudioWrite(handle *alsa.Handle, nIn int, data []byte, format alsa.Sampl
 			}
 
 		} else {
-			handle.Drain()
+			//handle.Drain()
 			_ = slimprotoSend(slimproto.Conn, 0, "STMs") // Track Started
 			slimaudio.NewTrack = false
 		}

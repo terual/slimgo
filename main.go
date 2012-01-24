@@ -94,6 +94,8 @@ func main() {
 	}
 
 	// TODO
+	slimbuffer.Reader = new(Reader)
+	slimbuffer.Reader.buf = make([]byte, 1048576)
 	slimbuffer.Init = false
 
 	// Open a ALSA handle

@@ -72,6 +72,7 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 				<-slimaudioChannel
 			}
 
+			
 			// Send data to ALSA interface
 			_, alsaErr, writeErr := slimaudioWrite(slimaudio.Handle, n, inBuf, format, rate, channels)
 
@@ -91,6 +92,7 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 				//slimaudio.State = "STOPPED"
 				return
 			}
+
 			n, inErr = buf.Read(inBuf)
 		}
 
