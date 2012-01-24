@@ -72,9 +72,8 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 				<-slimaudioChannel
 			}
 
-			
 			// Send data to ALSA interface
-			_, alsaErr, writeErr := slimaudioWrite(slimaudio.Handle, n, inBuf, format, rate, channels)
+			nAlsa, alsaErr, writeErr := slimaudioWrite(slimaudio.Handle, 0, n, inBuf, format, rate, channels)
 
 			// An alsaErr is raised if for instance S24_3LE is not supported by hw:0,0
 			if alsaErr != nil {
@@ -91,6 +90,12 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 				//_ = slimprotoSend(slimproto.Conn, 0, "STMn")
 				//slimaudio.State = "STOPPED"
 				return
+			}
+
+			// If the number of bytes written by ALSA is less than what is read
+			// reduce the read pointer with the difference
+			if nAlsa != n {
+				slimbuffer.Reader.r -= (n - nAlsa)
 			}
 
 			n, inErr = buf.Read(inBuf)

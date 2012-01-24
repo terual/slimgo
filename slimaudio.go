@@ -62,7 +62,7 @@ func slimaudioSetParams(handle *alsa.Handle, sampleFormat alsa.SampleFormat, sam
 }
 
 // Writes data to ALSA
-func slimaudioWrite(handle *alsa.Handle, nIn int, data []byte, format alsa.SampleFormat, rate int, channels int) (n int, alsaErr os.Error, writeErr os.Error) {
+func slimaudioWrite(handle *alsa.Handle, nStart int, nEnd int, data []byte, format alsa.SampleFormat, rate int, channels int) (n int, alsaErr os.Error, writeErr os.Error) {
 
 	if slimaudio.NewTrack == true {
 		if handle.SampleFormat != format || handle.SampleRate != rate || handle.Channels != channels {
@@ -86,14 +86,14 @@ func slimaudioWrite(handle *alsa.Handle, nIn int, data []byte, format alsa.Sampl
 		}
 	}
 
-	if nIn > 0 {
-		n, writeErr = handle.Write(data[0:nIn])
+	if nEnd > nStart {
+		n, writeErr = handle.Write(data[nStart:nEnd])
 
 		if writeErr != nil {
 			log.Printf("Write failed. %s\n", writeErr)
 
 			alsaErr = slimaudioSetParams(handle, format, rate, channels)
-			n, writeErr = handle.Write(data[0:nIn])
+			n, writeErr = handle.Write(data[nStart:nEnd])
 			if writeErr != nil {
 				log.Printf("Write failed AGAIN. %s\n", writeErr)
 			}
