@@ -80,8 +80,9 @@ func main() {
 	// First parse the command line options
 	flag.Parse()
 
-	if *debug {
-		log.Printf("MAC: %s, macdec: %v", *macAddr, macConvert(*macAddr))
+	mac, err := macConvert(*macAddr)
+	if err != nil {
+		log.Fatalf("Cannot parse MAC address: %v", *macAddr)
 	}
 
 	// Use discovery for SB server
@@ -104,12 +105,14 @@ func main() {
 	}
 	slimaudio.Handle = slimaudioOpen(*outputDevice)
 	defer slimaudioClose(slimaudio.Handle)
+	maxRate, _ := slimaudio.Handle.MaxSampleRate()
+	log.Printf("Maximum sample rate of %s: %v Hz.", *outputDevice, maxRate)
 
 	// This catches a SIGTERM et al. to be able to send a BYE! message
 	go signalWatcher()
 
 	// Connect to SB server
-	go slimproto_main(slimproto.Addr, slimproto.Port)
+	go slimproto_main(slimproto.Addr, slimproto.Port, mac, maxRate)
 
 	<-slimprotoChannel // Wait for slimproto to finish; discard sent value.
 }
@@ -143,7 +146,7 @@ func signalWatcher() {
 }
 
 // Convert a colon seperated mac-address to a uint8 array
-func macConvert(macAddr string) (decMac [6]uint8) {
+func macConvert(macAddr string) (decMac [6]uint8, err os.Error) {
 	f := func(i int) bool {
 		if string(i) == ":" {
 			return true
@@ -151,15 +154,36 @@ func macConvert(macAddr string) (decMac [6]uint8) {
 		return false
 	}
 	mac := strings.FieldsFunc(macAddr, f)
+	if len(mac) != 6 {
+		return [6]uint8{0,0,0,0,0,0}, os.NewError("Cannot parse mac-address")
+	}
 	for i, v := range mac {
-		decMac64, _ := strconv.Btoui64(v, 16)
+		decMac64, err := strconv.Btoui64(v, 16)
+		if err != nil {
+			return [6]uint8{0,0,0,0,0,0}, err
+		}
 		decMac[i] = uint8(decMac64)
+	}
+	return decMac, nil
+}
+
+func getMacAddr() (mac [6]uint8, err os.Error) {
+	ifaces, _ := net.Interfaces()
+	for i := range ifaces {
+
+		iface, err := net.InterfaceByIndex(i+1)
+		if err != nil {
+			log.Println(err, i)
+			break
+		}
+		log.Println(iface.HardwareAddr)
+
 	}
 	return
 }
 
 // Main loop
-func slimproto_main(addr net.IP, port int) {
+func slimproto_main(addr net.IP, port int, mac [6]uint8, maxRate int) {
 
 	for {
 		var reconnect = false
@@ -171,7 +195,7 @@ func slimproto_main(addr net.IP, port int) {
 		slimprotoConnect(addr, port)
 		defer slimprotoClose()
 
-		err := slimprotoHello(macConvert(*macAddr))
+		err := slimprotoHello(mac, maxRate)
 		if err != nil {
 			if *debug {
 				log.Println("Handshake failed, trying again")

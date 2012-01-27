@@ -104,11 +104,12 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 		if inErr == os.EOF {
 			// Close connection on EOF
 			r.Body.Close()
-			//err = slimprotoSend(slimproto.Conn, 0, "STMu")
 
 			// STMd triggers the switch in the server to the next track
 			err = slimprotoSend(slimproto.Conn, 0, "STMd")
 			slimaudio.State = "STOPPED"
+
+			err = slimprotoSend(slimproto.Conn, 0, "STMu")
 		}
 
 	} else {

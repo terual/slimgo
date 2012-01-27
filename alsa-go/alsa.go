@@ -292,6 +292,40 @@ func (handle *Handle) Drop() {
 	}
 }
 
+func (handle *Handle) MaxSampleRate() (int, os.Error) {
+
+	var cHwParams *C.snd_pcm_hw_params_t
+
+	err := C.snd_pcm_hw_params_malloc(&cHwParams)
+	if err < 0 {
+		return 0, os.NewError(fmt.Sprintf("Cannot allocate hardware parameter structure. %s",
+			strError(err)))
+	}
+
+	err = C.snd_pcm_hw_params_any(handle.cHandle, cHwParams)
+	if err < 0 {
+		return 0, os.NewError(fmt.Sprintf("Cannot initialize hardware parameter structure. %s",
+			strError(err)))
+	}
+
+    err = C.snd_pcm_hw_params_set_rate_resample(handle.cHandle, cHwParams, 0);
+	if err < 0 {
+		return 0, os.NewError(fmt.Sprintf("Cannot restrict configuration space to contain only real hardware rates. %s",
+			strError(err)))
+	}
+
+	var maxRate C.uint
+	var dir C.int
+
+	err = C.snd_pcm_hw_params_get_rate_max(cHwParams, &maxRate, &dir)
+	if err < 0 {
+		return 0, os.NewError(fmt.Sprintf("Retrieving maximum samplerate failed. %s", err))
+	}
+
+	return int(maxRate), nil
+
+}
+
 // Delay returns the numbers of frames between the time that a frame that 
 // is written to the PCM stream and it to be actually audible.
 func (handle *Handle) Delay() (int, os.Error) {

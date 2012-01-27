@@ -24,6 +24,7 @@ import (
 	"log"
 	"encoding/binary"
 	"strconv"
+	"./alsa-go/_obj/alsa"
 )
 
 // Try a discovery on slimproto address and port
@@ -197,12 +198,18 @@ func slimprotoRecv() (err os.Error) {
 			case "q":
 				slimaudio.Handle.Drop()
 				_ = slimbuffer.Reader.Flush()
+				slimaudio.Handle.SampleFormat = alsa.SampleFormatUnknown
+				slimaudio.Handle.SampleRate = 0
+				slimaudio.Handle.Channels = 0
 				slimaudio.State = "STOPPED"
 				err = slimprotoSend(slimproto.Conn, 0, "STMf")
 			case "f":
 				//flush
 				slimaudio.Handle.Drop()
 				_ = slimbuffer.Reader.Flush()
+				slimaudio.Handle.SampleFormat = alsa.SampleFormatUnknown
+				slimaudio.Handle.SampleRate = 0
+				slimaudio.Handle.Channels = 0
 			case "a":
 				//skip-ahead
 			default:
@@ -356,7 +363,7 @@ func slimprotoSend(conn *net.TCPConn, timestamp uint32, eventcode string) (err o
 
 	err = binary.Write(conn, binary.BigEndian, &msg)
 	if *debug {
-		log.Println("Send", eventcode, msg)
+		log.Printf("[Sent %s]", eventcode)
 	}
 
 	return
@@ -373,8 +380,11 @@ func slimprotoClose() {
 }
 
 // Send a HELO message
-func slimprotoHello(macAddr [6]uint8) (err os.Error) {
+func slimprotoHello(macAddr [6]uint8, maxRate int) (err os.Error) {
 
+	capabilities := "model=squeezeplay,modelName=SlimGo,pcm,MaxSampleRate=" + strconv.Itoa(maxRate)
+
+	// TODO, <192000Hz: len(cap) = 58
 	type HELO struct {
 		Operation       [4]byte
 		Length          uint32
@@ -388,11 +398,14 @@ func slimprotoHello(macAddr [6]uint8) (err os.Error) {
 		Capabilities    [59]byte
 	}
 
+
 	// send a packet
-	msg := HELO{Length: 36 + 59, DeviceID: 12, Revision: 255, MAC: macAddr}
+	msg := HELO{Length: 36 + uint32(len(capabilities)), DeviceID: 12, Revision: 255, MAC: macAddr}
 	copy(msg.Operation[:], "HELO")
-	//copy(msg.MAC[:], "\x12\x34\x56\x78\x90\xab")
-	copy(msg.Capabilities[:], "model=squeezeplay,modelName=SlimGo,pcm,MaxSampleRate=192000")
+	copy(msg.Capabilities[:], capabilities)
+
+	log.Println(msg)
+
 	err = binary.Write(slimproto.Conn, binary.BigEndian, &msg)
 
 	return
