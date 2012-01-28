@@ -99,7 +99,7 @@ func slimaudioWrite(handle *alsa.Handle, nStart int, nEnd int, data []byte, form
 			}
 		}
 
-		if n > 0 {
+		if n > 0 && handle.SampleSize() > 0 && handle.Channels > 0 {
 			slimaudio.FramesWritten += (n / (handle.SampleSize() * handle.Channels))
 		}
 
@@ -111,7 +111,7 @@ func slimaudioWrite(handle *alsa.Handle, nStart int, nEnd int, data []byte, form
 }
 
 // Convert slimproto format to ALSA format parameters
-func slimaudioProto2Param(pcmsamplesize uint8, pcmsamplerate uint8, pcmchannels uint8, pcmendian uint8) (format alsa.SampleFormat, rate int, channels int) {
+func slimaudioProto2Param(pcmsamplesize uint8, pcmsamplerate uint8, pcmchannels uint8, pcmendian uint8) (format alsa.SampleFormat, rate int, channels int, framesize int) {
 
 	switch pcmchannels {
 	case 49:
@@ -155,24 +155,32 @@ func slimaudioProto2Param(pcmsamplesize uint8, pcmsamplerate uint8, pcmchannels 
 		switch pcmsamplesize {
 		case 48: //0: 8-bits
 			format = alsa.SampleFormatS8
+			framesize = channels
 		case 49: //1: 16-bits
 			format = alsa.SampleFormatS16BE
+			framesize = channels*2
 		case 50: //2: 24-bits
 			format = alsa.SampleFormatS24_3BE
+			framesize = channels*3
 		case 51: //3: 32-bits
 			format = alsa.SampleFormatS32BE
+			framesize = channels*4
 		}
 	case 49:
 		// 1: little-endian
 		switch pcmsamplesize {
 		case 48: //0: 8-bits
 			format = alsa.SampleFormatS8
+			framesize = channels
 		case 49: //1: 16-bits
 			format = alsa.SampleFormatS16LE
+			framesize = channels*2
 		case 50: //2: 24-bits
 			format = alsa.SampleFormatS24_3LE
+			framesize = channels*3
 		case 51: //3: 32-bits
 			format = alsa.SampleFormatS32LE
+			framesize = channels*4
 		}
 	}
 

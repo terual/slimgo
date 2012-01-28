@@ -26,7 +26,7 @@ import (
 	"./alsa-go/_obj/alsa"
 )
 
-func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.SampleFormat, rate int, channels int) (err os.Error) {
+func slimbufferOpen(httpHeader []byte, addr string, port string, Pcmsamplesize uint8, Pcmsamplerate uint8, Pcmchannels uint8, Pcmendian uint8) (err os.Error) {
 
 	hdrSlice := strings.Fields(string(httpHeader[:]))
 	req, _ := http.NewRequest(hdrSlice[0], "http://"+addr+":"+port+hdrSlice[1], nil)
@@ -52,8 +52,12 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 		slimaudio.FramesWritten = 0
 		slimaudio.NewTrack = true
 
-		// TODO inBufLen
-		inBufLen := 2 * 3 * 4 * channels * 1024
+		format, rate, channels, framesize := slimaudioProto2Param(Pcmsamplesize,
+			Pcmsamplerate,
+			Pcmchannels,
+			Pcmendian)
+
+		inBufLen := framesize*1024
 		inBuf := make([]byte, inBufLen)
 
 		_ = slimprotoSend(slimproto.Conn, 0, "STMl") //	Buffer threshold reached 

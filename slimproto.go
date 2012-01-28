@@ -239,12 +239,16 @@ func slimprotoRecv() (err os.Error) {
 				_, _ = slimproto.Conn.Read(httpHeader[0:])
 
 				if string(streamResponse.Formatbyte) == "p" {
-					format, rate, channels := slimaudioProto2Param(streamResponse.Pcmsamplesize,
+					port := strconv.Itoa(int(streamResponse.Server_port))
+
+					go slimbufferOpen(httpHeader, 
+						slimproto.Addr.String(), 
+						port, 
+						streamResponse.Pcmsamplesize,
 						streamResponse.Pcmsamplerate,
 						streamResponse.Pcmchannels,
 						streamResponse.Pcmendian)
-					port := strconv.Itoa(int(streamResponse.Server_port))
-					go slimbufferOpen(httpHeader, slimproto.Addr.String(), port, format, rate, channels)
+
 					_ = slimprotoSend(slimproto.Conn, 0, "STMh")
 					slimaudio.State = "PLAYING"
 					//slimaudioChannel <- 2
