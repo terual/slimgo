@@ -277,19 +277,26 @@ func SetAlsaMasterVolume(volume int) {
     C.snd_mixer_close(handle)
 }
 
-func (handle *Handle) Drain() {
-	if handle.SampleRate > 0 {
-		C.snd_pcm_drain(handle.cHandle)
+func (handle *Handle) Drain() os.Error {
+
+	err := C.snd_pcm_drain(handle.cHandle)
+	if err < 0 {
+		return os.NewError(fmt.Sprintf("Cannot drain stream. %s",
+			strError(err)))
 	}
+	return nil
+
 }
 
-func (handle *Handle) Drop() {
-	if handle.SampleRate > 0 {
-		C.snd_pcm_drop(handle.cHandle)
-		handle.SampleRate = 0
-		handle.Channels = 0
-		handle.SampleFormat = SampleFormatUnknown
+func (handle *Handle) Drop() os.Error {
+
+	err := C.snd_pcm_drop(handle.cHandle)
+	if err < 0 {
+		return os.NewError(fmt.Sprintf("Cannot drop stream. %s",
+			strError(err)))
 	}
+	return nil
+		
 }
 
 func (handle *Handle) MaxSampleRate() (int, os.Error) {

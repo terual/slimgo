@@ -196,7 +196,7 @@ func slimprotoRecv() (err os.Error) {
 					slimaudio.State = "PLAYING"
 				}
 			case "q":
-				slimaudio.Handle.Drop()
+				_ = slimaudio.Handle.Drop()
 				_ = slimbuffer.Reader.Flush()
 				slimaudio.Handle.SampleFormat = alsa.SampleFormatUnknown
 				slimaudio.Handle.SampleRate = 0
@@ -205,7 +205,7 @@ func slimprotoRecv() (err os.Error) {
 				err = slimprotoSend(slimproto.Conn, 0, "STMf")
 			case "f":
 				//flush
-				slimaudio.Handle.Drop()
+				_ = slimaudio.Handle.Drop()
 				_ = slimbuffer.Reader.Flush()
 				slimaudio.Handle.SampleFormat = alsa.SampleFormatUnknown
 				slimaudio.Handle.SampleRate = 0

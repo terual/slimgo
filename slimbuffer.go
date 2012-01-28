@@ -80,6 +80,9 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, format alsa.Sam
 				log.Printf("Format not supported, if using hw as output device, try plughw: %v", alsaErr)
 				_ = slimprotoSend(slimproto.Conn, 0, "STMn")
 				slimaudio.State = "STOPPED"
+				slimaudio.Handle.SampleFormat = alsa.SampleFormatUnknown
+				slimaudio.Handle.SampleRate = 0
+				slimaudio.Handle.Channels = 0
 				return
 			}
 			//TODO:
