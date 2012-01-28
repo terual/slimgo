@@ -65,7 +65,7 @@ func slimaudioSetParams(handle *alsa.Handle, sampleFormat alsa.SampleFormat, sam
 func slimaudioWrite(handle *alsa.Handle, nStart int, nEnd int, data []byte, format alsa.SampleFormat, rate int, channels int) (n int, alsaErr os.Error, writeErr os.Error) {
 
 	if slimaudio.NewTrack == true {
-		if handle.SampleFormat != format || handle.SampleRate != rate || handle.Channels != channels {
+		if handle.SampleFormat != format || handle.SampleRate != rate || handle.Channels != channels || handle.SampleFormat == alsa.SampleFormatUnknown || handle.SampleRate == 0 || handle.Channels == 0{
 
 			_ = handle.Drop()
 			alsaErr = slimaudioSetParams(handle, format, rate, channels) // This also drains the alsa buffer

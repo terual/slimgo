@@ -391,6 +391,11 @@ func (handle *Handle) AvailUpdate() (freeBytes int, err os.Error) {
 // Write writes given PCM data.
 // Returns wrote value is total bytes was written.
 func (handle *Handle) Write(buf []byte) (wrote int, err os.Error) {
+
+	if handle.Channels == 0 {
+		return 0, os.NewError(fmt.Sprintf("Channel count is zero"))
+	}
+
 	frames := len(buf) / handle.SampleSize() / handle.Channels
 	w := C.snd_pcm_writei(handle.cHandle, unsafe.Pointer(&buf[0]), _Ctypedef_snd_pcm_uframes_t(frames))
 
