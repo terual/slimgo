@@ -179,14 +179,6 @@ func slimprotoRecv() (errProto os.Error) {
 					string(streamResponse.Pcmchannels), string(streamResponse.Pcmendian))
 			}
 
-			switch streamResponse.Flags {
-			case 64: //0x40
-				// stream without restarting decoder
-				slimaudio.NewTrack = true
-			default:
-				log.Printf("Flag: %v", streamResponse.Flags)
-			}
-
 			switch string(streamResponse.Command) {
 			case "t":
 				_ = slimprotoSend(slimproto.Conn, streamResponse.Replay_gain, "STMt")
@@ -267,6 +259,16 @@ func slimprotoRecv() (errProto os.Error) {
 
 			// check if a http header is sent
 			if headerResponse.Lenght > 28 {
+
+				// Check flags
+				switch streamResponse.Flags {
+				case 64: //0x40
+					// stream without restarting decoder
+					slimaudio.NewTrack = true
+				default:
+					log.Printf("Flag: %v", streamResponse.Flags)
+				}
+
 				httpHeader := make([]byte, headerResponse.Lenght-28)
 				_, errProto = slimproto.Conn.Read(httpHeader[0:])
 
@@ -310,7 +312,20 @@ func slimprotoRecv() (errProto os.Error) {
 				_, errProto = slimproto.Conn.Read(body[0:])
 			}
 
+		case "stat":
+			// Request a STAT update from the player 
+			body := make([]byte, headerResponse.Lenght-4)
+			_, errProto = slimproto.Conn.Read(body[0:])
+			log.Println("stat:", body)
+
+		case "serv":
+			// Tells the client to switch to another server. 
+			body := make([]byte, headerResponse.Lenght-4)
+			_, errProto = slimproto.Conn.Read(body[0:])
+			log.Println("serv:", body)
+
 		default:
+			// Rest is ignored
 			body := make([]byte, headerResponse.Lenght-4)
 			_, errProto = slimproto.Conn.Read(body[0:])
 		}
