@@ -155,12 +155,12 @@ func macConvert(macAddr string) (decMac [6]uint8, err os.Error) {
 	}
 	mac := strings.FieldsFunc(macAddr, f)
 	if len(mac) != 6 {
-		return [6]uint8{0,0,0,0,0,0}, os.NewError("Cannot parse mac-address")
+		return [6]uint8{0, 0, 0, 0, 0, 0}, os.NewError("Cannot parse mac-address")
 	}
 	for i, v := range mac {
 		decMac64, err := strconv.Btoui64(v, 16)
 		if err != nil {
-			return [6]uint8{0,0,0,0,0,0}, err
+			return [6]uint8{0, 0, 0, 0, 0, 0}, err
 		}
 		decMac[i] = uint8(decMac64)
 	}
@@ -171,7 +171,7 @@ func getMacAddr() (mac [6]uint8, err os.Error) {
 	ifaces, _ := net.Interfaces()
 	for i := range ifaces {
 
-		iface, err := net.InterfaceByIndex(i+1)
+		iface, err := net.InterfaceByIndex(i + 1)
 		if err != nil {
 			log.Println(err, i)
 			break

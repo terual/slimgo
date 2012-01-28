@@ -182,20 +182,20 @@ func (handle *Handle) ApplyHwParams() os.Error {
 			strError(err)))
 	}
 
-    // Set number of periods. Periods used to be called fragments.
-    err = C.snd_pcm_hw_params_set_periods(handle.cHandle, cHwParams, _Ctype_uint(handle.Periods), 0)
+	// Set number of periods. Periods used to be called fragments.
+	err = C.snd_pcm_hw_params_set_periods(handle.cHandle, cHwParams, _Ctype_uint(handle.Periods), 0)
 	if err < 0 {
 		return os.NewError(fmt.Sprintf("Cannot set number of periods. %s",
 			strError(err)))
-    }
+	}
 
-    // Set buffer size (in frames). The resulting latency is given by
-    // latency = periodsize * periods / (rate * bytes_per_frame)
-    err = C.snd_pcm_hw_params_set_buffer_size(handle.cHandle, cHwParams, _Ctypedef_snd_pcm_uframes_t(handle.Buffersize))
+	// Set buffer size (in frames). The resulting latency is given by
+	// latency = periodsize * periods / (rate * bytes_per_frame)
+	err = C.snd_pcm_hw_params_set_buffer_size(handle.cHandle, cHwParams, _Ctypedef_snd_pcm_uframes_t(handle.Buffersize))
 	if err < 0 {
 		return os.NewError(fmt.Sprintf("Cannot set buffersize. %s",
 			strError(err)))
-	    
+
 		/*err = C.snd_pcm_hw_params_set_buffer_size_near(handle.cHandle, cHwParams, _Ctypedef_snd_pcm_uframes_t(handle.Buffersize))
 		if err < 0 {
 			return os.NewError(fmt.Sprintf("Cannot set buffersize. %s",
@@ -225,7 +225,7 @@ func GetDevices() {
 	err := C.snd_device_name_hint(-1, C.CString("pcm"), hints)
 	if err != 0 {
 		fmt.Println(err)
-	   return
+		return
 	}
 	fmt.Println(hints)
 
@@ -250,27 +250,27 @@ func GetDevices() {
 }
 
 func SetAlsaMasterVolume(volume int) {
-    var min, max _Ctype_long
-    var handle *C.snd_mixer_t
-    var sid *C.snd_mixer_selem_id_t
-    card := "default"
-    selem_name := "Master"
+	var min, max _Ctype_long
+	var handle *C.snd_mixer_t
+	var sid *C.snd_mixer_selem_id_t
+	card := "default"
+	selem_name := "Master"
 
-    C.snd_mixer_open(&handle, 0)
-    C.snd_mixer_attach(handle, C.CString(card))
-    C.snd_mixer_selem_register(handle, nil, nil)
-    C.snd_mixer_load(handle)
+	C.snd_mixer_open(&handle, 0)
+	C.snd_mixer_attach(handle, C.CString(card))
+	C.snd_mixer_selem_register(handle, nil, nil)
+	C.snd_mixer_load(handle)
 
-    //C.snd_mixer_selem_id_alloca(&sid)
-    C.snd_mixer_selem_id_set_index(sid, 0)
-    C.snd_mixer_selem_id_set_name(sid, C.CString(selem_name))
-    var elem *C.snd_mixer_elem_t 
+	//C.snd_mixer_selem_id_alloca(&sid)
+	C.snd_mixer_selem_id_set_index(sid, 0)
+	C.snd_mixer_selem_id_set_name(sid, C.CString(selem_name))
+	var elem *C.snd_mixer_elem_t
 	elem = C.snd_mixer_find_selem(handle, sid)
 
-    C.snd_mixer_selem_get_playback_volume_range(elem, &min, &max)
-    C.snd_mixer_selem_set_playback_volume_all(elem, _Ctype_long(volume * int(max) / 128))
+	C.snd_mixer_selem_get_playback_volume_range(elem, &min, &max)
+	C.snd_mixer_selem_set_playback_volume_all(elem, _Ctype_long(volume*int(max)/128))
 
-    C.snd_mixer_close(handle)
+	C.snd_mixer_close(handle)
 }
 
 func (handle *Handle) Drain() os.Error {
@@ -292,7 +292,7 @@ func (handle *Handle) Drop() os.Error {
 			strError(err)))
 	}
 	return nil
-		
+
 }
 
 func (handle *Handle) MaxSampleRate() (int, os.Error) {
@@ -311,7 +311,7 @@ func (handle *Handle) MaxSampleRate() (int, os.Error) {
 			strError(err)))
 	}
 
-    err = C.snd_pcm_hw_params_set_rate_resample(handle.cHandle, cHwParams, 0);
+	err = C.snd_pcm_hw_params_set_rate_resample(handle.cHandle, cHwParams, 0)
 	if err < 0 {
 		return 0, os.NewError(fmt.Sprintf("Cannot restrict configuration space to contain only real hardware rates. %s",
 			strError(err)))
@@ -347,7 +347,7 @@ func (handle *Handle) SkipFrames(frames int) (int, os.Error) {
 
 	// Get safe count of frames which can be forwarded.
 	var framesForwardable C.snd_pcm_sframes_t
-	framesForwardable = C.snd_pcm_forwardable(handle.cHandle)  
+	framesForwardable = C.snd_pcm_forwardable(handle.cHandle)
 	if framesForwardable < 0 {
 		return 0, os.NewError(fmt.Sprintf("Retrieving forwardable frames failed. %s", strError(_Ctype_int(framesForwardable))))
 	}
@@ -358,7 +358,7 @@ func (handle *Handle) SkipFrames(frames int) (int, os.Error) {
 
 	// Move application frame position forward.
 	var framesForwarded C.snd_pcm_sframes_t
-	framesForwarded = C.snd_pcm_forward(handle.cHandle, _Ctypedef_snd_pcm_uframes_t(frames)) 	
+	framesForwarded = C.snd_pcm_forward(handle.cHandle, _Ctypedef_snd_pcm_uframes_t(frames))
 	if framesForwarded < 0 {
 		return 0, os.NewError(fmt.Sprintf("Cannot forward frames. %s", strError(_Ctype_int(framesForwarded))))
 	}

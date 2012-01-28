@@ -185,7 +185,7 @@ func slimprotoRecv() (errProto os.Error) {
 				slimaudio.NewTrack = true
 			default:
 				log.Printf("Flag: %v", streamResponse.Flags)
-			}				
+			}
 
 			switch string(streamResponse.Command) {
 			case "t":
@@ -201,7 +201,7 @@ func slimprotoRecv() (errProto os.Error) {
 				} else {
 					// if non-zero, an interval (ms) to pause for and then automatically resume
 					// no STMp & STMr status messages are sent in this case.
-					time.Sleep(int64(streamResponse.Replay_gain)*1e6)
+					time.Sleep(int64(streamResponse.Replay_gain) * 1e6)
 					slimaudio.Handle.Unpause()
 					slimaudioChannel <- 1
 				}
@@ -273,9 +273,9 @@ func slimprotoRecv() (errProto os.Error) {
 				if string(streamResponse.Formatbyte) == "p" {
 					port := strconv.Itoa(int(streamResponse.Server_port))
 
-					go slimbufferOpen(httpHeader, 
-						slimproto.Addr.String(), 
-						port, 
+					go slimbufferOpen(httpHeader,
+						slimproto.Addr.String(),
+						port,
 						streamResponse.Pcmsamplesize,
 						streamResponse.Pcmsamplerate,
 						streamResponse.Pcmchannels,

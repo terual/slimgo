@@ -158,13 +158,13 @@ func slimaudioProto2Param(pcmsamplesize uint8, pcmsamplerate uint8, pcmchannels 
 			framesize = channels
 		case 49: //1: 16-bits
 			format = alsa.SampleFormatS16BE
-			framesize = channels*2
+			framesize = channels * 2
 		case 50: //2: 24-bits
 			format = alsa.SampleFormatS24_3BE
-			framesize = channels*3
+			framesize = channels * 3
 		case 51: //3: 32-bits
 			format = alsa.SampleFormatS32BE
-			framesize = channels*4
+			framesize = channels * 4
 		}
 	case 49:
 		// 1: little-endian
@@ -174,13 +174,13 @@ func slimaudioProto2Param(pcmsamplesize uint8, pcmsamplerate uint8, pcmchannels 
 			framesize = channels
 		case 49: //1: 16-bits
 			format = alsa.SampleFormatS16LE
-			framesize = channels*2
+			framesize = channels * 2
 		case 50: //2: 24-bits
 			format = alsa.SampleFormatS24_3LE
-			framesize = channels*3
+			framesize = channels * 3
 		case 51: //3: 32-bits
 			format = alsa.SampleFormatS32LE
-			framesize = channels*4
+			framesize = channels * 4
 		}
 	}
 

@@ -92,7 +92,7 @@ func (b *Reader) Read(p []byte) (n int, err os.Error) {
 		return 0, b.readErr()
 	}
 	//if b.w == b.r {
-	if b.w < (b.r+8192) { // 8192 is an arbitrary fill threshold
+	if b.w < (b.r + 8192) { // 8192 is an arbitrary fill threshold
 		if b.err != nil {
 			return 0, b.readErr()
 		}

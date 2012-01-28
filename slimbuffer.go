@@ -56,7 +56,7 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, Pcmsamplesize u
 			Pcmchannels,
 			Pcmendian)
 
-		inBufLen := framesize*1024
+		inBufLen := framesize * 1024
 		inBuf := make([]byte, inBufLen)
 
 		_ = slimprotoSend(slimproto.Conn, 0, "STMl") //	Buffer threshold reached 

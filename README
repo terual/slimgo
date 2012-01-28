@@ -4,5 +4,5 @@ Use gomake to build slimgo.
 
 TODO:
  - Remove alsa-go from this repository and use upstream
- - Fix alignment issues
+ - Fix alignment issues, this causes sometimes static (watch out for your speakers!)
 
