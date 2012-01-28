@@ -215,9 +215,13 @@ func slimprotoRecv() (err os.Error) {
 				//skip-ahead
 				// replay_gain field: if non-zero, an interval (ms) to skip over (not play).
 				framesToSkip := int(streamResponse.Replay_gain) * slimaudio.Handle.SampleRate / 1000
-				log.Printf("Skipping %v frames, %v ms", framesToSkip, streamResponse.Replay_gain)
+				if *debug {
+					log.Printf("Skipping %v frames, %v ms", framesToSkip, streamResponse.Replay_gain)
+				}
 				framesSkipped, err := slimaudio.Handle.SkipFrames(framesToSkip)
-				log.Printf("Skipped %v frames, err: %s", framesSkipped, err)
+				if *debug {
+					log.Printf("Skipped %v frames, err: %s", framesSkipped, err)
+				}
 
 			default:
 				if *debug {
@@ -345,11 +349,15 @@ func slimprotoSend(conn *net.TCPConn, timestamp uint32, eventcode string) (err o
 	var BufferFullness int
 	var BufferSize int
 	if slimbuffer.Init == true {
-		BufferFullness = 0 //slimbuffer.Reader.Buffered()
-		BufferSize = 0     //slimbuffer.Reader.Size()
+		BufferFullness = slimbuffer.Reader.Buffered()
+		BufferSize = slimbuffer.Reader.Size()
 	} else {
 		BufferFullness = 0
 		BufferSize = 0
+	}
+
+	if *debug {
+		log.Printf("BufferFullness: %v, BufferSize: %v", BufferFullness, BufferSize)
 	}
 
 	msg := STAT{Length: 53,

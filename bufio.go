@@ -150,6 +150,8 @@ func (b *Reader) Buffered() int { return b.w - b.r }
 
 func (b *Reader) Flush() (err os.Error) {
 	b = new(Reader)
+	b.w = 0
+	b.r = 0
 	return nil
 }
 
