@@ -26,6 +26,7 @@ import (
 	"encoding/binary"
 	"strconv"
 	"./alsa-go/_obj/alsa"
+	"time"
 )
 
 // Try a discovery on slimproto address and port
@@ -157,19 +158,19 @@ type audg struct {
 }
 
 // Receive from slimproto and act upon
-func slimprotoRecv() (err os.Error) {
+func slimprotoRecv() (errProto os.Error) {
 
 	var headerResponse header
-	err = binary.Read(slimproto.Conn, binary.BigEndian, &headerResponse)
+	errProto = binary.Read(slimproto.Conn, binary.BigEndian, &headerResponse)
 
-	if err == nil {
+	if errProto == nil {
 		// convert [4]uint8 to string
 		var cmdHdr = string(headerResponse.CommandHeader[:])
 		switch cmdHdr {
 		case "strm":
 			// read into strm struct
 			var streamResponse strm
-			err = binary.Read(slimproto.Conn, binary.BigEndian, &streamResponse)
+			errProto = binary.Read(slimproto.Conn, binary.BigEndian, &streamResponse)
 
 			if *debug {
 				log.Printf("[Recv strm] Command: %s, Autostart: %s, Formatbyte: %s, Pcmsamplesize: %s, Pcmsamplerate: %s, Pcmchannels: %s, Pcmendian: %s\n",
@@ -177,6 +178,14 @@ func slimprotoRecv() (err os.Error) {
 					string(streamResponse.Pcmsamplesize), string(streamResponse.Pcmsamplerate),
 					string(streamResponse.Pcmchannels), string(streamResponse.Pcmendian))
 			}
+
+			switch streamResponse.Flags {
+			case 64: //0x40
+				// stream without restarting decoder
+				slimaudio.NewTrack = true
+			default:
+				log.Printf("Flag: %v", streamResponse.Flags)
+			}				
 
 			switch string(streamResponse.Command) {
 			case "t":
@@ -189,28 +198,51 @@ func slimprotoRecv() (err os.Error) {
 				slimaudio.State = "PAUSED"
 				if streamResponse.Replay_gain == 0 {
 					_ = slimprotoSend(slimproto.Conn, 0, "STMp")
+				} else {
+					// if non-zero, an interval (ms) to pause for and then automatically resume
+					// no STMp & STMr status messages are sent in this case.
+					time.Sleep(int64(streamResponse.Replay_gain)*1e6)
+					slimaudio.Handle.Unpause()
+					slimaudioChannel <- 1
 				}
 			case "u":
 				if slimaudio.State == "PAUSED" {
+					if streamResponse.Replay_gain != 0 {
+						// if non-zero, the player-specific internal timestamp (ms) at which to unpause
+						if *debug {
+							log.Printf("Waiting for jiffie %v, now: %v", streamResponse.Replay_gain, jiffies())
+						}
+						for jiffies() >= streamResponse.Replay_gain {
+							time.Sleep(1e6) //1ms
+						}
+					}
 					slimaudio.Handle.Unpause()
 					slimaudioChannel <- 1
 					slimaudio.State = "PLAYING"
+					_ = slimprotoSend(slimproto.Conn, 0, "STMr")
 				}
 			case "q":
-				_ = slimaudio.Handle.Drop()
+				err := slimaudio.Handle.Drop()
+				if err != nil {
+					log.Printf("ALSA drop failed. %s", err)
+				}
 				_ = slimbuffer.Reader.Flush()
 				slimaudio.Handle.SampleFormat = alsa.SampleFormatUnknown
 				slimaudio.Handle.SampleRate = 0
 				slimaudio.Handle.Channels = 0
 				slimaudio.State = "STOPPED"
-				err = slimprotoSend(slimproto.Conn, 0, "STMf")
+				_ = slimprotoSend(slimproto.Conn, 0, "STMf")
 			case "f":
 				//flush
-				_ = slimaudio.Handle.Drop()
+				err := slimaudio.Handle.Drop()
+				if err != nil {
+					log.Printf("ALSA drop failed. %s", err)
+				}
 				_ = slimbuffer.Reader.Flush()
 				slimaudio.Handle.SampleFormat = alsa.SampleFormatUnknown
 				slimaudio.Handle.SampleRate = 0
 				slimaudio.Handle.Channels = 0
+				_ = slimprotoSend(slimproto.Conn, 0, "STMf")
 			case "a":
 				//skip-ahead
 				// replay_gain field: if non-zero, an interval (ms) to skip over (not play).
@@ -236,7 +268,7 @@ func slimprotoRecv() (err os.Error) {
 			// check if a http header is sent
 			if headerResponse.Lenght > 28 {
 				httpHeader := make([]byte, headerResponse.Lenght-28)
-				_, _ = slimproto.Conn.Read(httpHeader[0:])
+				_, errProto = slimproto.Conn.Read(httpHeader[0:])
 
 				if string(streamResponse.Formatbyte) == "p" {
 					port := strconv.Itoa(int(streamResponse.Server_port))
@@ -267,7 +299,7 @@ func slimprotoRecv() (err os.Error) {
 			if headerResponse.Lenght == 26 {
 				// read into audg struct
 				var audioGainResponse audg
-				err = binary.Read(slimproto.Conn, binary.BigEndian, &audioGainResponse)
+				errProto = binary.Read(slimproto.Conn, binary.BigEndian, &audioGainResponse)
 				if *debug {
 					log.Printf("audioGainResponse, Old_left: %v, Old_right: %v, New_left: %v, New_right: %v",
 						audioGainResponse.Old_left, audioGainResponse.Old_right,
@@ -275,12 +307,12 @@ func slimprotoRecv() (err os.Error) {
 				}
 			} else {
 				body := make([]byte, headerResponse.Lenght-4)
-				_, err = slimproto.Conn.Read(body[0:])
+				_, errProto = slimproto.Conn.Read(body[0:])
 			}
 
 		default:
 			body := make([]byte, headerResponse.Lenght-4)
-			_, err = slimproto.Conn.Read(body[0:])
+			_, errProto = slimproto.Conn.Read(body[0:])
 		}
 	}
 

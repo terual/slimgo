@@ -114,7 +114,7 @@ type Handle struct {
 	// Channels in the stream. 2 for stereo.
 	Channels   int
 	Periods    int
-	Buffersize C.snd_pcm_uframes_t
+	Buffersize int
 }
 
 // New returns newly initialized ALSA handler.
@@ -182,30 +182,26 @@ func (handle *Handle) ApplyHwParams() os.Error {
 			strError(err)))
 	}
 
-	/*
-	    // Set number of periods. Periods used to be called fragments.
-	    err = C.snd_pcm_hw_params_set_periods(handle.cHandle, cHwParams, _Ctype_uint(handle.Periods), 0)
-		if err < 0 {
-			return os.NewError(fmt.Sprintf("Cannot set number of periods. %s",
-				strError(err)))
-	    }
+    // Set number of periods. Periods used to be called fragments.
+    err = C.snd_pcm_hw_params_set_periods(handle.cHandle, cHwParams, _Ctype_uint(handle.Periods), 0)
+	if err < 0 {
+		return os.NewError(fmt.Sprintf("Cannot set number of periods. %s",
+			strError(err)))
+    }
 
-	    // Set buffer size (in frames). The resulting latency is given by
-	    // latency = periodsize * periods / (rate * bytes_per_frame)
-	    //err = C.snd_pcm_hw_params_set_buffer_size(handle.cHandle, cHwParams, (periodsize * periods)>>2)
-		//if err < 0 {
-		//	return os.NewError(fmt.Sprintf("Cannot set buffersize. %s",
-		//		strError(err)))
-	    //}
-
-		//var cBufferSize *C.snd_pcm_uframes_t
-		//cBufferSize = _Ctype_snd_pcm_uframes_t(_Ctype_uint(handle.Periods) * _Ctype_uint(handle.Periodsize))>>2
-	    err = C.snd_pcm_hw_params_set_buffer_size_near(handle.cHandle, cHwParams, &handle.Buffersize)
+    // Set buffer size (in frames). The resulting latency is given by
+    // latency = periodsize * periods / (rate * bytes_per_frame)
+    err = C.snd_pcm_hw_params_set_buffer_size(handle.cHandle, cHwParams, _Ctypedef_snd_pcm_uframes_t(handle.Buffersize))
+	if err < 0 {
+		return os.NewError(fmt.Sprintf("Cannot set buffersize. %s",
+			strError(err)))
+	    
+		/*err = C.snd_pcm_hw_params_set_buffer_size_near(handle.cHandle, cHwParams, _Ctypedef_snd_pcm_uframes_t(handle.Buffersize))
 		if err < 0 {
 			return os.NewError(fmt.Sprintf("Cannot set buffersize. %s",
 				strError(err)))
-	    }
-	*/
+		}*/
+	}
 
 	// Drain current data and make sure we aren't underrun.
 	C.snd_pcm_drain(handle.cHandle)
@@ -362,7 +358,7 @@ func (handle *Handle) SkipFrames(frames int) (int, os.Error) {
 
 	// Move application frame position forward.
 	var framesForwarded C.snd_pcm_sframes_t
-	framesForwarded = C.snd_pcm_forward(handle.cHandle, C.snd_pcm_uframes_t(frames)) 	
+	framesForwarded = C.snd_pcm_forward(handle.cHandle, _Ctypedef_snd_pcm_uframes_t(frames)) 	
 	if framesForwarded < 0 {
 		return 0, os.NewError(fmt.Sprintf("Cannot forward frames. %s", strError(_Ctype_int(framesForwarded))))
 	}

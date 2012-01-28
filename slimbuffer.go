@@ -50,7 +50,6 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, Pcmsamplesize u
 
 		// This tracks the streamtime
 		slimaudio.FramesWritten = 0
-		slimaudio.NewTrack = true
 
 		format, rate, channels, framesize := slimaudioProto2Param(Pcmsamplesize,
 			Pcmsamplerate,
