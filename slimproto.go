@@ -19,6 +19,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"log"
@@ -318,11 +319,6 @@ func slimprotoSend(conn *net.TCPConn, timestamp uint32, eventcode string) (err o
 	var elapsedMillis uint64
 	var elapsedFrames int
 
-	/*if slimaudio.StartSeconds != 0 {
-		ElapsedSeconds = uint32(time.Seconds() - slimaudio.StartSeconds)
-		ElapsedMillis = uint32((time.Nanoseconds() - slimaudio.StartNanos) / 1e6)
-	}*/
-
 	if slimaudio.FramesWritten > 0 && slimaudio.Handle.SampleRate > 0 {
 		delayFrames, err := slimaudio.Handle.Delay()
 		if err == nil {
@@ -384,8 +380,20 @@ func slimprotoHello(macAddr [6]uint8, maxRate int) (err os.Error) {
 
 	capabilities := "model=squeezeplay,modelName=SlimGo,pcm,MaxSampleRate=" + strconv.Itoa(maxRate)
 
-	// TODO, <192000Hz: len(cap) = 58
-	type HELO struct {
+	type HELO58 struct {
+		Operation       [4]byte
+		Length          uint32
+		DeviceID        uint8
+		Revision        uint8
+		MAC             [6]uint8
+		UUID            [16]uint8
+		WLanChannelList [2]uint8
+		Bytes_recv      [8]uint8
+		Language        [2]uint8
+		Capabilities    [58]byte
+	}
+
+	type HELO59 struct {
 		Operation       [4]byte
 		Length          uint32
 		DeviceID        uint8
@@ -398,15 +406,21 @@ func slimprotoHello(macAddr [6]uint8, maxRate int) (err os.Error) {
 		Capabilities    [59]byte
 	}
 
-
 	// send a packet
-	msg := HELO{Length: 36 + uint32(len(capabilities)), DeviceID: 12, Revision: 255, MAC: macAddr}
-	copy(msg.Operation[:], "HELO")
-	copy(msg.Capabilities[:], capabilities)
-
-	log.Println(msg)
-
-	err = binary.Write(slimproto.Conn, binary.BigEndian, &msg)
+	switch len(capabilities) {
+	case 58:
+		msg := HELO58{Length: 36 + uint32(len(capabilities)), DeviceID: 12, Revision: 255, MAC: macAddr}
+		copy(msg.Operation[:], "HELO")
+		copy(msg.Capabilities[:], capabilities)
+		err = binary.Write(slimproto.Conn, binary.BigEndian, &msg)
+	case 59:
+		msg := HELO59{Length: 36 + uint32(len(capabilities)), DeviceID: 12, Revision: 255, MAC: macAddr}
+		copy(msg.Operation[:], "HELO")
+		copy(msg.Capabilities[:], capabilities)
+		err = binary.Write(slimproto.Conn, binary.BigEndian, &msg)
+	default:
+		return os.NewError(fmt.Sprintf("Samplerate has no valid len: %v", maxRate))
+	}
 
 	return
 }

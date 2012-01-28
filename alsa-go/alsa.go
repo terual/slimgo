@@ -329,6 +329,8 @@ func (handle *Handle) MaxSampleRate() (int, os.Error) {
 		return 0, os.NewError(fmt.Sprintf("Retrieving maximum samplerate failed. %s", err))
 	}
 
+	C.snd_pcm_hw_params_free(cHwParams)
+
 	return int(maxRate), nil
 
 }
