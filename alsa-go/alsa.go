@@ -347,6 +347,29 @@ func (handle *Handle) Delay() (int, os.Error) {
 	return int(_Ctype_int(delay)), nil
 }
 
+func (handle *Handle) SkipFrames(frames int) (int, os.Error) {
+
+	// Get safe count of frames which can be forwarded.
+	var framesForwardable C.snd_pcm_sframes_t
+	framesForwardable = C.snd_pcm_forwardable(handle.cHandle)  
+	if framesForwardable < 0 {
+		return 0, os.NewError(fmt.Sprintf("Retrieving forwardable frames failed. %s", strError(_Ctype_int(framesForwardable))))
+	}
+
+	if int(_Ctype_int(framesForwardable)) < frames {
+		frames = int(_Ctype_int(framesForwardable))
+	}
+
+	// Move application frame position forward.
+	var framesForwarded C.snd_pcm_sframes_t
+	framesForwarded = C.snd_pcm_forward(handle.cHandle, C.snd_pcm_uframes_t(frames)) 	
+	if framesForwarded < 0 {
+		return 0, os.NewError(fmt.Sprintf("Cannot forward frames. %s", strError(_Ctype_int(framesForwarded))))
+	}
+
+	return int(_Ctype_int(framesForwarded)), nil
+}
+
 // Wait waits till buffer will be free for some new portion of data or
 // delay time is runs out.
 // true ok value means that PCM stream is ready for I/O, false -- timeout occured.

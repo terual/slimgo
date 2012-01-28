@@ -213,6 +213,12 @@ func slimprotoRecv() (err os.Error) {
 				slimaudio.Handle.Channels = 0
 			case "a":
 				//skip-ahead
+				// replay_gain field: if non-zero, an interval (ms) to skip over (not play).
+				framesToSkip := int(streamResponse.Replay_gain) * slimaudio.Handle.SampleRate / 1000
+				log.Printf("Skipping %v frames, %v ms", framesToSkip, streamResponse.Replay_gain)
+				framesSkipped, err := slimaudio.Handle.SkipFrames(framesToSkip)
+				log.Printf("Skipped %v frames, err: %s", framesSkipped, err)
+
 			default:
 				if *debug {
 					log.Println("Did not recognise strm message with cmd: %s", string(streamResponse.Command))
@@ -380,7 +386,7 @@ func slimprotoHello(macAddr [6]uint8, maxRate int) (err os.Error) {
 
 	capabilities := "model=squeezeplay,modelName=SlimGo,pcm,MaxSampleRate=" + strconv.Itoa(maxRate)
 
-	type HELO58 struct {
+	type HELO58 struct { //58
 		Operation       [4]byte
 		Length          uint32
 		DeviceID        uint8
@@ -393,7 +399,7 @@ func slimprotoHello(macAddr [6]uint8, maxRate int) (err os.Error) {
 		Capabilities    [58]byte
 	}
 
-	type HELO59 struct {
+	type HELO59 struct { //59
 		Operation       [4]byte
 		Length          uint32
 		DeviceID        uint8
