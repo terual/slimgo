@@ -264,8 +264,9 @@ func slimprotoRecv() (errProto os.Error) {
 				switch streamResponse.Flags {
 				case 64: //0x40
 					// stream without restarting decoder
-					slimaudio.NewTrack = true
+					slimaudio.NewTrack = false
 				default:
+					slimaudio.NewTrack = true
 					log.Printf("Flag: %v", streamResponse.Flags)
 				}
 

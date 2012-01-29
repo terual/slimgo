@@ -54,7 +54,7 @@ func slimaudioSetParams(handle *alsa.Handle, sampleFormat alsa.SampleFormat, sam
 	handle.SampleFormat = sampleFormat
 	handle.SampleRate = sampleRate
 	handle.Channels = channels
-	handle.Periods = 2
+	handle.Periods = 32
 	handle.Buffersize = 8192
 
 	err = handle.ApplyHwParams()
@@ -65,14 +65,13 @@ func slimaudioSetParams(handle *alsa.Handle, sampleFormat alsa.SampleFormat, sam
 func slimaudioWrite(handle *alsa.Handle, nStart int, nEnd int, data []byte, format alsa.SampleFormat, rate int, channels int) (n int, alsaErr os.Error, writeErr os.Error) {
 
 	if slimaudio.NewTrack == true {
-		if handle.SampleFormat != format || handle.SampleRate != rate || handle.Channels != channels || handle.SampleFormat == alsa.SampleFormatUnknown || handle.SampleRate == 0 || handle.Channels == 0{
+		if handle.SampleFormat != format || handle.SampleRate != rate || handle.Channels != channels || handle.SampleFormat == alsa.SampleFormatUnknown || handle.SampleRate == 0 || handle.Channels == 0 {
 
 			_ = handle.Drop()
 			alsaErr = slimaudioSetParams(handle, format, rate, channels) // This also drains the alsa buffer
-			_ = slimprotoSend(slimproto.Conn, 0, "STMs")                 // Track Started
-			slimaudio.NewTrack = false
 
 			if alsaErr != nil {
+				log.Printf("Set params error: %s", alsaErr)
 				return 0, alsaErr, nil
 			} else {
 				if *debug {
@@ -80,9 +79,14 @@ func slimaudioWrite(handle *alsa.Handle, nStart int, nEnd int, data []byte, form
 				}
 			}
 
+			_ = slimprotoSend(slimproto.Conn, 0, "STMs")                 // Track Started
+			slimaudio.NewTrack = false
+
 		} else {
+
 			_ = slimprotoSend(slimproto.Conn, 0, "STMs") // Track Started
 			slimaudio.NewTrack = false
+
 		}
 	}
 

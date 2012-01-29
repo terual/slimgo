@@ -113,7 +113,9 @@ type Handle struct {
 	SampleRate int
 	// Channels in the stream. 2 for stereo.
 	Channels   int
+	// The interval between interrupts from the hardware
 	Periods    int
+	// Size of buffer in frames
 	Buffersize int
 }
 
@@ -182,25 +184,39 @@ func (handle *Handle) ApplyHwParams() os.Error {
 			strError(err)))
 	}
 
-	// Set number of periods. Periods used to be called fragments.
-	err = C.snd_pcm_hw_params_set_periods(handle.cHandle, cHwParams, _Ctype_uint(handle.Periods), 0)
-	if err < 0 {
-		return os.NewError(fmt.Sprintf("Cannot set number of periods. %s",
-			strError(err)))
+	if handle.Periods > 0 {
+		// Set number of periods. Periods used to be called fragments.
+		/*err = C.snd_pcm_hw_params_set_periods(handle.cHandle, cHwParams, _Ctype_uint(handle.Periods), 0)
+		if err < 0 {
+			return os.NewError(fmt.Sprintf("Cannot set number of periods. %s",
+				strError(err)))
+		}*/
+
+		var cPeriods _Ctype_uint = _Ctype_uint(handle.Periods)
+		var cDir _Ctype_int = 0 // Exact value is <,=,> the returned one following dir (-1,0,1) 
+		err = C.snd_pcm_hw_params_set_periods_near(handle.cHandle, cHwParams, &cPeriods, &cDir)
+		if err < 0 {
+			return os.NewError(fmt.Sprintf("Cannot set number of periods. %s",
+				strError(err)))
+		}
 	}
 
-	// Set buffer size (in frames). The resulting latency is given by
-	// latency = periodsize * periods / (rate * bytes_per_frame)
-	err = C.snd_pcm_hw_params_set_buffer_size(handle.cHandle, cHwParams, _Ctypedef_snd_pcm_uframes_t(handle.Buffersize))
-	if err < 0 {
-		return os.NewError(fmt.Sprintf("Cannot set buffersize. %s",
-			strError(err)))
-
-		/*err = C.snd_pcm_hw_params_set_buffer_size_near(handle.cHandle, cHwParams, _Ctypedef_snd_pcm_uframes_t(handle.Buffersize))
+	if handle.Buffersize > 0 {
+		// Set buffer size (in frames). The resulting latency is given by
+		// latency = periodsize * periods / (rate * bytes_per_frame)
+		/*err = C.snd_pcm_hw_params_set_buffer_size(handle.cHandle, cHwParams, _Ctypedef_snd_pcm_uframes_t(handle.Buffersize))
 		if err < 0 {
 			return os.NewError(fmt.Sprintf("Cannot set buffersize. %s",
 				strError(err)))
 		}*/
+
+		var cBuffersize _Ctypedef_snd_pcm_uframes_t = _Ctypedef_snd_pcm_uframes_t(handle.Buffersize)
+		err = C.snd_pcm_hw_params_set_buffer_size_near(handle.cHandle, cHwParams, &cBuffersize)
+		if err < 0 {
+			return os.NewError(fmt.Sprintf("Cannot set buffersize. %s",
+				strError(err)))
+		}
+
 	}
 
 	// Drain current data and make sure we aren't underrun.
