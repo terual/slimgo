@@ -54,8 +54,8 @@ func slimaudioSetParams(handle *alsa.Handle, sampleFormat alsa.SampleFormat, sam
 	handle.SampleFormat = sampleFormat
 	handle.SampleRate = sampleRate
 	handle.Channels = channels
-	handle.Periods = 32
-	handle.Buffersize = 8192
+	handle.Periods = 64
+	handle.Buffersize = 1024
 
 	err = handle.ApplyHwParams()
 	return

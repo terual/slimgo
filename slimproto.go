@@ -187,7 +187,7 @@ func slimprotoRecv() (errProto os.Error) {
 				_ = slimprotoSend(slimproto.Conn, 0, "STMc")
 			case "p":
 				slimaudio.Handle.Pause()
-				slimaudio.State = "PAUSED"
+				slimaudio.State = "PAUSE"
 				if streamResponse.Replay_gain == 0 {
 					_ = slimprotoSend(slimproto.Conn, 0, "STMp")
 				} else {
@@ -195,7 +195,9 @@ func slimprotoRecv() (errProto os.Error) {
 					// no STMp & STMr status messages are sent in this case.
 					time.Sleep(int64(streamResponse.Replay_gain) * 1e6)
 					slimaudio.Handle.Unpause()
-					slimaudioChannel <- 1
+					if slimaudio.State == "PAUSE" {
+						slimaudioChannel <- 1
+					}
 				}
 			case "u":
 				if slimaudio.State == "PAUSED" {
@@ -210,6 +212,10 @@ func slimprotoRecv() (errProto os.Error) {
 					}
 					slimaudio.Handle.Unpause()
 					slimaudioChannel <- 1
+					slimaudio.State = "PLAYING"
+					_ = slimprotoSend(slimproto.Conn, 0, "STMr")
+				} else if slimaudio.State == "PAUSE" {
+					slimaudio.Handle.Unpause()
 					slimaudio.State = "PLAYING"
 					_ = slimprotoSend(slimproto.Conn, 0, "STMr")
 				}
@@ -286,7 +292,6 @@ func slimprotoRecv() (errProto os.Error) {
 
 					_ = slimprotoSend(slimproto.Conn, 0, "STMh")
 					slimaudio.State = "PLAYING"
-					//slimaudioChannel <- 2
 				} else {
 					if *debug {
 						log.Printf("Format not supported, Formatbyte: %s", string(streamResponse.Formatbyte))

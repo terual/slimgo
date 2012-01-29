@@ -71,7 +71,8 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, Pcmsamplesize u
 					log.Println("Stopping goroutine slimbufferOpen")
 				}
 				return
-			} else if slimaudio.State == "PAUSED" {
+			} else if slimaudio.State == "PAUSE" {
+				slimaudio.State = "PAUSED"
 				<-slimaudioChannel
 			}
 
