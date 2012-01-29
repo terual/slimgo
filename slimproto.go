@@ -195,12 +195,15 @@ func slimprotoRecv() (errProto os.Error) {
 					// no STMp & STMr status messages are sent in this case.
 					time.Sleep(int64(streamResponse.Replay_gain) * 1e6)
 					slimaudio.Handle.Unpause()
-					if slimaudio.State == "PAUSE" {
+
+					// if slimaudio.State == "PAUSED" we should send to 
+					// slimaudioChannel to wake the goroutine (unlikely)
+					if slimaudio.State == "PAUSED" {
 						slimaudioChannel <- 1
 					}
 				}
 			case "u":
-				if slimaudio.State == "PAUSED" {
+				if slimaudio.State == "PAUSED" || slimaudio.State == "PAUSE" {
 					if streamResponse.Replay_gain != 0 {
 						// if non-zero, the player-specific internal timestamp (ms) at which to unpause
 						if *debug {
@@ -211,11 +214,12 @@ func slimprotoRecv() (errProto os.Error) {
 						}
 					}
 					slimaudio.Handle.Unpause()
-					slimaudioChannel <- 1
-					slimaudio.State = "PLAYING"
-					_ = slimprotoSend(slimproto.Conn, 0, "STMr")
-				} else if slimaudio.State == "PAUSE" {
-					slimaudio.Handle.Unpause()
+
+					// if slimaudio.State == "PAUSED" we should send to 
+					// slimaudioChannel to wake the goroutine
+					if slimaudio.State == "PAUSED" {
+						slimaudioChannel <- 1
+					}
 					slimaudio.State = "PLAYING"
 					_ = slimprotoSend(slimproto.Conn, 0, "STMr")
 				}

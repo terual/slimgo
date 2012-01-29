@@ -72,6 +72,7 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, Pcmsamplesize u
 				}
 				return
 			} else if slimaudio.State == "PAUSE" {
+				// wait for slimproto before carrying on
 				slimaudio.State = "PAUSED"
 				<-slimaudioChannel
 			}
