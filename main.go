@@ -43,14 +43,15 @@ var macAddr = flag.String("m", "00:00:00:00:00:02", "Sets the mac address for th
 
 // slimaudio struct
 type audio struct {
-	Handle        *alsa.Handle
-	State         string
-	Pcmsamplesize uint8
-	Pcmsamplerate uint8
-	Pcmchannels   uint8
-	Pcmendian     uint8
-	FramesWritten int
-	NewTrack      bool
+	Handle            *alsa.Handle
+	State             string
+	Pcmsamplesize     uint8
+	Pcmsamplerate     uint8
+	Pcmchannels       uint8
+	Pcmendian         uint8
+	FramesWritten     int
+	LastFramesWritten int
+	NewTrack          bool
 }
 
 var slimaudio audio

@@ -54,8 +54,8 @@ func slimaudioSetParams(handle *alsa.Handle, sampleFormat alsa.SampleFormat, sam
 	handle.SampleFormat = sampleFormat
 	handle.SampleRate = sampleRate
 	handle.Channels = channels
-	handle.Periods = 64
-	handle.Buffersize = 1024
+	//handle.Periods = 64
+	//handle.Buffersize = 1024
 
 	err = handle.ApplyHwParams()
 	return
@@ -64,30 +64,27 @@ func slimaudioSetParams(handle *alsa.Handle, sampleFormat alsa.SampleFormat, sam
 // Writes data to ALSA
 func slimaudioWrite(handle *alsa.Handle, nStart int, nEnd int, data []byte, format alsa.SampleFormat, rate int, channels int) (n int, alsaErr os.Error, writeErr os.Error) {
 
-	if slimaudio.NewTrack == true {
-		if handle.SampleFormat != format || handle.SampleRate != rate || handle.Channels != channels || handle.SampleFormat == alsa.SampleFormatUnknown || handle.SampleRate == 0 || handle.Channels == 0 {
 
-			_ = handle.Drop()
-			alsaErr = slimaudioSetParams(handle, format, rate, channels) // This also drains the alsa buffer
+	if handle.SampleFormat != format || handle.SampleRate != rate || handle.Channels != channels || handle.SampleFormat == alsa.SampleFormatUnknown || handle.SampleRate == 0 || handle.Channels == 0 {
 
-			if alsaErr != nil {
-				log.Printf("Set params error: %s", alsaErr)
-				return 0, alsaErr, nil
-			} else {
-				if *debug {
-					log.Println("ALSA set to", format, rate, channels)
-				}
-			}
+		_ = handle.Drop()
+		alsaErr = slimaudioSetParams(handle, format, rate, channels) // This also drains the alsa buffer
 
-			_ = slimprotoSend(slimproto.Conn, 0, "STMs")                 // Track Started
-			slimaudio.NewTrack = false
-
+		if alsaErr != nil {
+			log.Printf("Set params error: %s", alsaErr)
+			return 0, alsaErr, nil
 		} else {
-
-			_ = slimprotoSend(slimproto.Conn, 0, "STMs") // Track Started
-			slimaudio.NewTrack = false
-
+			if *debug {
+				log.Println("ALSA set to", format, rate, channels)
+			}
 		}
+	}
+
+	delayFrames, _ := slimaudio.Handle.Delay()
+	if slimaudio.NewTrack == true && (slimaudio.FramesWritten >= delayFrames) {
+		log.Printf("NEW TRACK? FramesWritten: %v, delayFrames: %v", slimaudio.FramesWritten, delayFrames)
+		_ = slimprotoSend(slimproto.Conn, 0, "STMs") // Track Started
+		slimaudio.NewTrack = false
 	}
 
 	if nEnd > nStart {
@@ -96,11 +93,17 @@ func slimaudioWrite(handle *alsa.Handle, nStart int, nEnd int, data []byte, form
 		if writeErr != nil {
 			log.Printf("Write failed. %s\n", writeErr)
 
-			alsaErr = slimaudioSetParams(handle, format, rate, channels)
-			n, writeErr = handle.Write(data[nStart:nEnd])
-			if writeErr != nil {
-				log.Printf("Write failed AGAIN. %s\n", writeErr)
+			// Stop write if state is stopped
+			if slimaudio.State == "STOPPED" {
+				return n, nil, nil
 			}
+
+			alsaErr = slimaudioSetParams(handle, format, rate, channels)
+
+			//n, writeErr = handle.Write(data[nStart+n:nEnd])
+			//if writeErr != nil {
+			//	log.Printf("Write failed AGAIN. %s\n", writeErr)
+			//}
 		}
 
 		if n > 0 && handle.SampleSize() > 0 && handle.Channels > 0 {
@@ -112,6 +115,19 @@ func slimaudioWrite(handle *alsa.Handle, nStart int, nEnd int, data []byte, form
 	}
 
 	return n, nil, writeErr
+}
+
+func slimaudioElapsedFrames() (elapsedFrames int, err os.Error) {
+
+	delayFrames, err := slimaudio.Handle.Delay()
+	if err == nil {
+		elapsedFrames = slimaudio.FramesWritten - delayFrames
+		if elapsedFrames < 0 {
+			return (slimaudio.LastFramesWritten + elapsedFrames), nil
+		}
+		return elapsedFrames, nil
+	}
+	return 0, err
 }
 
 // Convert slimproto format to ALSA format parameters

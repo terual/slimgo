@@ -49,6 +49,9 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, Pcmsamplesize u
 		_ = slimprotoSend(slimproto.Conn, 0, "STMe") // Stream connection Established
 
 		// This tracks the streamtime
+		if slimaudio.FramesWritten > 0 {
+			slimaudio.LastFramesWritten = slimaudio.FramesWritten
+		}
 		slimaudio.FramesWritten = 0
 
 		format, rate, channels, framesize := slimaudioProto2Param(Pcmsamplesize,
@@ -90,14 +93,16 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, Pcmsamplesize u
 				slimaudio.Handle.Channels = 0
 				return
 			}
+
 			//TODO:
 			// Reset ALSA
 			if writeErr != nil {
-				slimaudio.Handle.Close()
-				slimaudio.Handle = slimaudioOpen(*outputDevice)
+				_ = slimaudio.Handle.Drop()
+				//slimaudio.Handle.Close()
+				//slimaudio.Handle = slimaudioOpen(*outputDevice)
 				//_ = slimprotoSend(slimproto.Conn, 0, "STMn")
 				//slimaudio.State = "STOPPED"
-				return
+				//return
 			}
 
 			// If the number of bytes written by ALSA is less than what is read

@@ -271,14 +271,15 @@ func slimprotoRecv() (errProto os.Error) {
 			if headerResponse.Lenght > 28 {
 
 				// Check flags
-				switch streamResponse.Flags {
+				/*switch streamResponse.Flags {
 				case 64: //0x40
 					// stream without restarting decoder
 					slimaudio.NewTrack = false
 				default:
 					slimaudio.NewTrack = true
 					log.Printf("Flag: %v", streamResponse.Flags)
-				}
+				}*/
+				slimaudio.NewTrack = true
 
 				httpHeader := make([]byte, headerResponse.Lenght-28)
 				_, errProto = slimproto.Conn.Read(httpHeader[0:])
@@ -387,20 +388,19 @@ u16 	error code - used with STMn */
 func slimprotoSend(conn *net.TCPConn, timestamp uint32, eventcode string) (err os.Error) {
 
 	var elapsedSeconds int
-	var elapsedMillis uint64
-	var elapsedFrames int
+	var elapsedMillis  uint64
+	var elapsedFrames  int
 
 	if slimaudio.FramesWritten > 0 && slimaudio.Handle.SampleRate > 0 {
-		delayFrames, err := slimaudio.Handle.Delay()
+		elapsedFrames, err = slimaudioElapsedFrames()
 		if err == nil {
-			elapsedFrames = slimaudio.FramesWritten - delayFrames
 			elapsedMillis = (uint64(elapsedFrames) * 1000) / uint64(slimaudio.Handle.SampleRate)
 			elapsedSeconds = int(elapsedMillis / 1000)
 			elapsedMillis = elapsedMillis % 1000
 		}
 		if *debug {
-			log.Printf("frames written: %v, delayFrames: %v, elapsedFrames: %v, ElapsedSeconds: %v, ElapsedMillis: %v",
-				slimaudio.FramesWritten, delayFrames, elapsedFrames, elapsedSeconds, elapsedMillis)
+			log.Printf("frames written: %v, elapsedFrames: %v, ElapsedSeconds: %v, ElapsedMillis: %v",
+				slimaudio.FramesWritten, elapsedFrames, elapsedSeconds, elapsedMillis)
 		}
 	} else {
 		elapsedSeconds = 0
