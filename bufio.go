@@ -8,9 +8,9 @@
 package main
 
 import (
-	"strconv"
 	"io"
-	"os"
+	"strconv"
+
 	//"fmt"
 	//"encoding/binary"
 )
@@ -18,7 +18,7 @@ import (
 // BufSizeError is the error representing an invalid buffer size.
 type BufSizeError int
 
-func (b BufSizeError) String() string {
+func (b BufSizeError) Error() string {
 	return "bufio: bad buffer size " + strconv.Itoa(int(b))
 }
 
@@ -27,7 +27,7 @@ type Reader struct {
 	buf          []byte
 	rd           io.Reader
 	r, w         int
-	err          os.Error
+	err          error
 	lastByte     int
 	lastRuneSize int
 }
@@ -36,7 +36,7 @@ type Reader struct {
 // which must be greater than zero.  If the argument io.Reader is already a
 // Reader with large enough size, it returns the underlying Reader.
 // It returns the Reader and any error.
-func (b *Reader) NewReaderSize(rd io.Reader, size int) (*Reader, os.Error) {
+func (b *Reader) NewReaderSize(rd io.Reader, size int) (*Reader, error) {
 	if size <= 0 {
 		return nil, BufSizeError(size)
 	}
@@ -75,7 +75,7 @@ func (b *Reader) fill() {
 	}
 }
 
-func (b *Reader) readErr() os.Error {
+func (b *Reader) readErr() error {
 	err := b.err
 	b.err = nil
 	return err
@@ -86,7 +86,7 @@ func (b *Reader) readErr() os.Error {
 // It calls Read at most once on the underlying Reader,
 // hence n may be less than len(p).
 // At EOF, the count will be zero and err will be os.EOF.
-func (b *Reader) Read(p []byte) (n int, err os.Error) {
+func (b *Reader) Read(p []byte) (n int, err error) {
 	n = len(p)
 	if n == 0 {
 		return 0, b.readErr()
@@ -131,7 +131,7 @@ func (b *Reader) Read(p []byte) (n int, err os.Error) {
 	return n, nil
 }
 
-func (b *Reader) FillBuffer() (n int, err os.Error) {
+func (b *Reader) FillBuffer() (n int, err error) {
 	if b.w == b.r {
 		if b.err != nil {
 			return 0, b.readErr()
@@ -148,7 +148,7 @@ func (b *Reader) FillBuffer() (n int, err os.Error) {
 // Buffered returns the number of bytes that can be read from the current buffer.
 func (b *Reader) Buffered() int { return b.w - b.r }
 
-func (b *Reader) Flush() (err os.Error) {
+func (b *Reader) Flush() (err error) {
 	b = new(Reader)
 	b.w = 0
 	b.r = 0

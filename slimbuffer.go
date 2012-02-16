@@ -19,14 +19,14 @@
 package main
 
 import (
+	"github.com/terual/alsa-go"
+	"io"
 	"log"
-	"http"
-	"os"
+	"net/http"
 	"strings"
-	"./alsa-go/_obj/alsa"
 )
 
-func slimbufferOpen(httpHeader []byte, addr string, port string, Pcmsamplesize uint8, Pcmsamplerate uint8, Pcmchannels uint8, Pcmendian uint8) (err os.Error) {
+func slimbufferOpen(httpHeader []byte, addr string, port string, Pcmsamplesize uint8, Pcmsamplerate uint8, Pcmchannels uint8, Pcmendian uint8) (err error) {
 
 	hdrSlice := strings.Fields(string(httpHeader[:]))
 	req, _ := http.NewRequest(hdrSlice[0], "http://"+addr+":"+port+hdrSlice[1], nil)
@@ -114,7 +114,7 @@ func slimbufferOpen(httpHeader []byte, addr string, port string, Pcmsamplesize u
 			n, inErr = buf.Read(inBuf)
 		}
 
-		if inErr == os.EOF {
+		if inErr == io.EOF {
 			// Close connection on EOF
 			r.Body.Close()
 

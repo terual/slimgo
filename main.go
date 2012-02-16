@@ -18,20 +18,21 @@
 package main
 
 import (
-	"log"
+	"errors"
 	"flag"
+	"github.com/terual/alsa-go"
+	"log"
 	"net"
-	"time"
 	"os"
-	"./alsa-go/_obj/alsa"
 	"os/signal"
-	"syscall"
-	"strings"
 	"strconv"
+	"strings"
+	"syscall"
+	"time"
 )
 
 // startTime is used by jiffies()
-var startTime = time.Nanoseconds() / 1e6
+var startTime = time.Now() / 1e6
 
 // Setup flags for command line options
 var useDisco = flag.Bool("F", true, "use discovery to find SB server")
@@ -120,7 +121,7 @@ func main() {
 
 // jiffies returns a 1kHz counter since start of program
 func jiffies() uint32 {
-	return uint32((time.Nanoseconds() / 1e6) - startTime)
+	return uint32((time.Now() / 1e6) - startTime)
 }
 
 // signalWatcher waits for a signal and send a BYE! message on SIGTERM, SIGINT and SIGQUIT
@@ -147,7 +148,7 @@ func signalWatcher() {
 }
 
 // Convert a colon seperated mac-address to a uint8 array
-func macConvert(macAddr string) (decMac [6]uint8, err os.Error) {
+func macConvert(macAddr string) (decMac [6]uint8, err error) {
 	f := func(i int) bool {
 		if string(i) == ":" {
 			return true
@@ -156,10 +157,10 @@ func macConvert(macAddr string) (decMac [6]uint8, err os.Error) {
 	}
 	mac := strings.FieldsFunc(macAddr, f)
 	if len(mac) != 6 {
-		return [6]uint8{0, 0, 0, 0, 0, 0}, os.NewError("Cannot parse mac-address")
+		return [6]uint8{0, 0, 0, 0, 0, 0}, errors.New("Cannot parse mac-address")
 	}
 	for i, v := range mac {
-		decMac64, err := strconv.Btoui64(v, 16)
+		decMac64, err := strconv.ParseUint(v, 16, 64)
 		if err != nil {
 			return [6]uint8{0, 0, 0, 0, 0, 0}, err
 		}
@@ -168,7 +169,7 @@ func macConvert(macAddr string) (decMac [6]uint8, err os.Error) {
 	return decMac, nil
 }
 
-func getMacAddr() (mac [6]uint8, err os.Error) {
+func getMacAddr() (mac [6]uint8, err error) {
 	ifaces, _ := net.Interfaces()
 	for i := range ifaces {
 

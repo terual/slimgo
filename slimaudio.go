@@ -19,9 +19,8 @@
 package main
 
 import (
-	"os"
+	"github.com/terual/alsa-go"
 	"log"
-	"./alsa-go/_obj/alsa"
 )
 
 // Open ALSA
@@ -50,20 +49,19 @@ func slimaudioClose(handle *alsa.Handle) {
 }
 
 // Apply the hw parameters
-func slimaudioSetParams(handle *alsa.Handle, sampleFormat alsa.SampleFormat, sampleRate int, channels int) (err os.Error) {
+func slimaudioSetParams(handle *alsa.Handle, sampleFormat alsa.SampleFormat, sampleRate int, channels int) (err error) {
 	handle.SampleFormat = sampleFormat
 	handle.SampleRate = sampleRate
 	handle.Channels = channels
 	//handle.Periods = 64
-	//handle.Buffersize = 1024
+	handle.Buffersize = handle.FrameSize() * 256
 
 	err = handle.ApplyHwParams()
 	return
 }
 
 // Writes data to ALSA
-func slimaudioWrite(handle *alsa.Handle, nStart int, nEnd int, data []byte, format alsa.SampleFormat, rate int, channels int) (n int, alsaErr os.Error, writeErr os.Error) {
-
+func slimaudioWrite(handle *alsa.Handle, nStart int, nEnd int, data []byte, format alsa.SampleFormat, rate int, channels int) (n int, alsaErr error, writeErr error) {
 
 	if handle.SampleFormat != format || handle.SampleRate != rate || handle.Channels != channels || handle.SampleFormat == alsa.SampleFormatUnknown || handle.SampleRate == 0 || handle.Channels == 0 {
 
@@ -117,7 +115,7 @@ func slimaudioWrite(handle *alsa.Handle, nStart int, nEnd int, data []byte, form
 	return n, nil, writeErr
 }
 
-func slimaudioElapsedFrames() (elapsedFrames int, err os.Error) {
+func slimaudioElapsedFrames() (elapsedFrames int, err error) {
 
 	delayFrames, err := slimaudio.Handle.Delay()
 	if err == nil {

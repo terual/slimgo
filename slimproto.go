@@ -19,13 +19,14 @@
 package main
 
 import (
+	"encoding/binary"
+	"errors"
 	"fmt"
+	"github.com/terual/alsa-go"
+	"log"
 	"net"
 	"os"
-	"log"
-	"encoding/binary"
 	"strconv"
-	"./alsa-go/_obj/alsa"
 	"time"
 )
 
@@ -46,7 +47,7 @@ func slimprotoDisco() (addr net.IP, port int) {
 		Port: 3483,
 	})
 	if err != nil {
-		log.Fatalf("Fatal error: %s", err.String())
+		log.Fatalf("Fatal error: %s", err.Error())
 	}
 	defer conn.Close()
 	conn.SetTimeout(1e9)
@@ -57,7 +58,7 @@ func slimprotoDisco() (addr net.IP, port int) {
 	//log.Println(msg)
 	err = binary.Write(conn, binary.BigEndian, &msg)
 	if err != nil {
-		log.Fatalf("Fatal error: %s", err.String())
+		log.Fatalf("Fatal error: %s", err.Error())
 	}
 
 	// receive the response
@@ -68,7 +69,7 @@ func slimprotoDisco() (addr net.IP, port int) {
 	conn.SetTimeout(1e9)
 	if err != nil {
 		if e, ok := err.(*net.OpError); ok {
-			if e.Error.(os.Errno) == 98 {
+			if e.Err.(os.Errno) == 98 {
 				// Presumably is it already in use by LMS on same machine
 				log.Println("Discovery failed due to the discovery port already in use, so we presume that the server is running on this machine. Please supply command line parameters if otherwise.")
 				return net.IP{127, 0, 0, 1}, 3483
@@ -109,7 +110,7 @@ func slimprotoConnect(addr net.IP, port int) {
 	sbsAddr.IP = addr
 	sbsAddr.Port = port
 
-	var err os.Error
+	var err error
 	slimproto.Conn, err = net.DialTCP("tcp", nil, sbsAddr)
 	checkError(err)
 	slimproto.Conn.SetTimeout(10e9)
@@ -158,7 +159,7 @@ type audg struct {
 }
 
 // Receive from slimproto and act upon
-func slimprotoRecv() (errProto os.Error) {
+func slimprotoRecv() (errProto error) {
 
 	var headerResponse header
 	errProto = binary.Read(slimproto.Conn, binary.BigEndian, &headerResponse)
@@ -224,6 +225,7 @@ func slimprotoRecv() (errProto os.Error) {
 					_ = slimprotoSend(slimproto.Conn, 0, "STMr")
 				}
 			case "q":
+				slimaudio.Handle.Pause()
 				err := slimaudio.Handle.Drop()
 				if err != nil {
 					log.Printf("ALSA drop failed. %s", err)
@@ -236,6 +238,7 @@ func slimprotoRecv() (errProto os.Error) {
 				_ = slimprotoSend(slimproto.Conn, 0, "STMf")
 			case "f":
 				//flush
+				slimaudio.Handle.Pause()
 				err := slimaudio.Handle.Drop()
 				if err != nil {
 					log.Printf("ALSA drop failed. %s", err)
@@ -366,6 +369,7 @@ type STAT struct {
 	Timestamp            uint32
 	ErrorCode            uint16
 }
+
 /*
 u32 	Event Code (a 4 byte string)
 u8 		Number of consecutive CRLF recieved while parsing headers
@@ -385,11 +389,11 @@ u32 	server timestamp - reflected from an strm-t command
 u16 	error code - used with STMn */
 
 // Send STAT message
-func slimprotoSend(conn *net.TCPConn, timestamp uint32, eventcode string) (err os.Error) {
+func slimprotoSend(conn *net.TCPConn, timestamp uint32, eventcode string) (err error) {
 
 	var elapsedSeconds int
-	var elapsedMillis  uint64
-	var elapsedFrames  int
+	var elapsedMillis uint64
+	var elapsedFrames int
 
 	if slimaudio.FramesWritten > 0 && slimaudio.Handle.SampleRate > 0 {
 		elapsedFrames, err = slimaudioElapsedFrames()
@@ -451,7 +455,7 @@ func slimprotoClose() {
 }
 
 // Send a HELO message
-func slimprotoHello(macAddr [6]uint8, maxRate int) (err os.Error) {
+func slimprotoHello(macAddr [6]uint8, maxRate int) (err error) {
 
 	capabilities := "model=squeezeplay,modelName=SlimGo,pcm,MaxSampleRate=" + strconv.Itoa(maxRate)
 
@@ -494,14 +498,14 @@ func slimprotoHello(macAddr [6]uint8, maxRate int) (err os.Error) {
 		copy(msg.Capabilities[:], capabilities)
 		err = binary.Write(slimproto.Conn, binary.BigEndian, &msg)
 	default:
-		return os.NewError(fmt.Sprintf("Samplerate has no valid len: %v", maxRate))
+		return errors.New(fmt.Sprintf("Samplerate has no valid len: %v", maxRate))
 	}
 
 	return
 }
 
 // Send a BYE! message
-func slimprotoBye() (err os.Error) {
+func slimprotoBye() (err error) {
 
 	type BYE struct {
 		Operation [4]byte
@@ -521,7 +525,7 @@ func slimprotoBye() (err os.Error) {
 }
 
 // Check for errors in err
-func checkError(err os.Error) {
+func checkError(err error) {
 	if err != nil {
 		log.Println("reader %v\n", err)
 	}
