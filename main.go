@@ -24,15 +24,15 @@ import (
 	"log"
 	"net"
 	"os"
-	"os/signal"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
+//	"syscall"
+//	"os/signal"
 )
 
 // startTime is used by jiffies()
-var startTime = time.Now() / 1e6
+var startTime time.Time = time.Now()
 
 // Setup flags for command line options
 var useDisco = flag.Bool("F", true, "use discovery to find SB server")
@@ -121,35 +121,18 @@ func main() {
 
 // jiffies returns a 1kHz counter since start of program
 func jiffies() uint32 {
-	return uint32((time.Now() / 1e6) - startTime)
+	return uint32(time.Now().Sub(startTime))
 }
 
 // signalWatcher waits for a signal and send a BYE! message on SIGTERM, SIGINT and SIGQUIT
 func signalWatcher() {
-	for {
-		select {
-		case sig := <-signal.Incoming:
-			switch s := sig.(type) {
-			case os.UnixSignal:
-				switch s {
-				case syscall.SIGCHLD:
-					continue
-				case syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT:
-					_ = slimprotoBye()
-					os.Exit(0)
-				default:
-					continue
-				}
-			default:
-				continue
-			}
-		}
-	}
+	//for {
+	//}
 }
 
 // Convert a colon seperated mac-address to a uint8 array
 func macConvert(macAddr string) (decMac [6]uint8, err error) {
-	f := func(i int) bool {
+	f := func(i rune) bool {
 		if string(i) == ":" {
 			return true
 		}

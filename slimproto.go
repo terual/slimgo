@@ -25,9 +25,9 @@ import (
 	"github.com/terual/alsa-go"
 	"log"
 	"net"
-	"os"
 	"strconv"
 	"time"
+//	"os"
 )
 
 // Try a discovery on slimproto address and port
@@ -50,7 +50,7 @@ func slimprotoDisco() (addr net.IP, port int) {
 		log.Fatalf("Fatal error: %s", err.Error())
 	}
 	defer conn.Close()
-	conn.SetTimeout(1e9)
+	//conn.SetDeadline(time.Time(1e9))
 
 	// send a packet
 	msg := discoSend{}
@@ -66,14 +66,15 @@ func slimprotoDisco() (addr net.IP, port int) {
 		IP:   net.IPv4zero,
 		Port: 3483,
 	})
-	conn.SetTimeout(1e9)
+	//conn.SetDeadline(time.Time(1e9))
 	if err != nil {
 		if e, ok := err.(*net.OpError); ok {
-			if e.Err.(os.Errno) == 98 {
+			log.Println("Error", e)
+			//if e.Err.(os.Errno) == 98 {
 				// Presumably is it already in use by LMS on same machine
 				log.Println("Discovery failed due to the discovery port already in use, so we presume that the server is running on this machine. Please supply command line parameters if otherwise.")
 				return net.IP{127, 0, 0, 1}, 3483
-			}
+			//}
 		}
 	}
 
@@ -113,7 +114,7 @@ func slimprotoConnect(addr net.IP, port int) {
 	var err error
 	slimproto.Conn, err = net.DialTCP("tcp", nil, sbsAddr)
 	checkError(err)
-	slimproto.Conn.SetTimeout(10e9)
+	//slimproto.Conn.SetDeadline(time.Time(10e9))
 
 	if *debug {
 		log.Println("Connected to slimproto")
@@ -194,7 +195,7 @@ func slimprotoRecv() (errProto error) {
 				} else {
 					// if non-zero, an interval (ms) to pause for and then automatically resume
 					// no STMp & STMr status messages are sent in this case.
-					time.Sleep(int64(streamResponse.Replay_gain) * 1e6)
+					time.Sleep(time.Duration(int64(streamResponse.Replay_gain) * 1e6))
 					slimaudio.Handle.Unpause()
 
 					// if slimaudio.State == "PAUSED" we should send to 
