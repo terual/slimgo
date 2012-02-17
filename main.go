@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 //	"syscall"
-//	"os/signal"
+	"os/signal"
 )
 
 // startTime is used by jiffies()
@@ -124,10 +124,17 @@ func jiffies() uint32 {
 	return uint32(time.Now().Sub(startTime))
 }
 
-// signalWatcher waits for a signal and send a BYE! message on SIGTERM, SIGINT and SIGQUIT
+// signalWatcher waits for a signal and sends a BYE! message on SIGINT (SIGTERM and SIGQUIT unimplemented)
 func signalWatcher() {
-	//for {
-	//}
+	sig := make(chan os.Signal)
+	signal.Notify(sig, os.Interrupt)
+
+	<-sig
+	log.Println("Caught SIGINT, shutting down...")
+	// First send a BYE! msg to the server
+	_ = slimprotoBye()
+	// Then end program
+	os.Exit(0)
 }
 
 // Convert a colon seperated mac-address to a uint8 array
