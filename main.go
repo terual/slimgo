@@ -27,7 +27,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-//	"syscall"
+	"syscall"
 	"os/signal"
 )
 
@@ -205,7 +205,7 @@ func slimproto_main(addr net.IP, port int, mac [6]uint8, maxRate int) {
 			err := slimprotoRecv()
 			if err != nil {
 				switch err {
-				case os.EAGAIN:
+				case syscall.EAGAIN:
 					log.Println("Slimproto timeout")
 					time.Sleep(1e9)
 					reconnect = true
